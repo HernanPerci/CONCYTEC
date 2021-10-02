@@ -1,0 +1,249 @@
+---
+title: "Evidencia empírica con análisis comparativo con países de la región y OCDE"
+author: "Hernan Perci Nuñez Palomino"
+date: "Última edición `r format(Sys.time(), '%d %B %Y')`"
+output: 
+  html_document: 
+    highlight: espresso
+    toc: yes
+    toc_depth: 5
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+    fig_caption: yes
+    number_sections: yes
+    theme: cerulean
+    df_print: kable
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 10, fig.height = 10)
+```
+
+
+# Librerias
+
+```{r}
+
+library(readxl)
+library(tidyverse)
+library(DT)
+library(ggthemes)
+
+```
+
+
+# Funciones
+
+```{r}
+
+# PERU VS CHILE COLOMBIA MEXICO - AP
+# PERU VS ARGENTINA BRASIL PARAGUAY URUGUAY VENEZUELA - MERCOSUR
+# PERU VS COSTARICA EEUU CANADA ESPAÑA PORTUGAL - ODEC*
+# ODEC* = Países analizadas en la RICYT menos los integrantes de la AP
+
+bbdd <- function(data) {
+ 
+  data %>% 
+  mutate(
+    Integración = 
+      case_when(País %in% c("Chile", "Colombia", "México", "Perú") ~ "AP",
+                País %in% 
+                  c("Argentina", "Brasil", "Paraguay", "Uruguay", "Venezuela") 
+                    ~ "MERCOSUR",
+                País %in% c("Costa Rica", "Estados Unidos", "Canadá", "España", 
+                            "Portugal") ~ "ODEC*",
+                TRUE ~ "OTROS_LAC")) %>%
+  filter(Integración != "OTROS_LAC")
+
+}
+
+```
+
+
+```{r}
+
+grafico <- function(data, xlab, ylab, valor1, valor2) {
+
+  #FORMATO LARGO
+  
+  data_l <- data %>%
+  gather(key = "Año", value = "value", `2010`:`2019`)  
+  
+  # PERU VS PROMEDIOS AP Y MERCOSUR
+  
+  data_r <- data_l %>%
+  group_by(Año, Integración) %>%
+  summarise(media = mean(value, na.rm = TRUE) %>% round(digits = 2))
+  
+  # grafico
+  ggplot(data_l, 
+         mapping = aes(x = value, y = País, color = Integración)) +
+  geom_point(size = 2.5) +
+  facet_wrap(.~Año) +
+  geom_vline(data = data_r, 
+             mapping = aes(xintercept = media, color = Integración)) +
+  geom_text(data = data_r %>% filter(Integración == "AP"), 
+            mapping = aes(label = media, x = valor1 * media, y = "Venezuela"), 
+            color = "red") +
+  geom_text(data = data_r %>% filter(Integración == "MERCOSUR"), 
+            mapping = aes(label = media, x = valor1 * media, y = "Argentina"), 
+            color = "green") +
+  geom_text(data = data_r %>% filter(Integración == "ODEC*"), 
+            mapping = aes(label = media, x = valor2 * media, y = "Estados Unidos"),
+            color = "blue") +
+  theme_igray() +
+  labs(x = xlab, y = ylab)
+    
+}
+
+```
+
+
+# Indicadores RICYT
+
+Red Iberoamericana de Indicadores de Ciencia y Tecnología.
+
+## Categoría: Contexto
+
+### Población
+
+Definición: Población en millones
+
+```{r}
+
+RICYT_CONTEXTO_POBLACION <- 
+  read_excel("indicadores RICYT.xlsx", 
+             sheet = "1.1", range = "B8:L37") %>%
+  bbdd()
+
+```
+
+
+```{r}
+
+datatable(RICYT_CONTEXTO_POBLACION, class = "cell-border stripe", 
+          editable = TRUE, extensions = "Buttons",
+          options = list(dom = "Bfrtip",
+                         buttons = c("copy", "csv", "excel", "pdf", "print")))
+
+```
+
+
+```{r}
+
+grafico(data = RICYT_CONTEXTO_POBLACION, xlab = "Población en Millones",
+        ylab = "País", valor1 = 1, valor2 = 1)
+
+```
+
+
+### PEA
+
+Definición: Población económicamente activa
+
+```{r}
+
+RICYT_CONTEXTO_PEA <- 
+  read_excel("indicadores RICYT.xlsx", 
+             sheet = "1.2", range = "B8:L37") %>%
+  bbdd()
+
+```
+
+
+```{r}
+
+datatable(RICYT_CONTEXTO_PEA, class = "cell-border stripe", 
+          editable = TRUE, extensions = "Buttons",
+          options = list(dom = "Bfrtip",
+                         buttons = c("copy", "csv", "excel", "pdf", "print")))
+
+```
+
+
+```{r}
+
+grafico(data = RICYT_CONTEXTO_PEA, xlab = "PEA", ylab = "País", valor = 1,
+        valor2 = 1)
+
+```
+
+
+### PBI
+
+Definición: Conjunto de bienes y servicios producidos en un país durante un año, expresado en millones de dólares corrientes.
+
+```{r}
+
+RICYT_CONTEXTO_PBI <- 
+  read_excel("indicadores RICYT.xlsx", 
+             sheet = "1.3", range = "B8:L37") %>%
+  bbdd()
+
+```
+
+
+```{r}
+
+datatable(RICYT_CONTEXTO_PBI, class = "cell-border stripe", 
+          editable = TRUE, extensions = "Buttons",
+          options = list(dom = "Bfrtip",
+                         buttons = c("copy", "csv", "excel", "pdf", "print")))
+
+```
+
+
+```{r}
+
+grafico(data = RICYT_CONTEXTO_PBI,
+        xlab = "PBI (millones de U$S corrientes)", ylab = "País", valor1 = 8,
+        valor2 = 2)
+
+```
+
+
+Notas generales: Las estimaciones en dólares fueron obtenidas aplicando los datos de Tipo de Cambio del Banco Mundial sobre la información en moneda local provista por cada país. Argentina: En 2014 el Instituto Nacional de Estadísticas y Censos de Argentina ha modificado su metodología para el cálculo del PBI  tomando como año base a 2004 en lugar de 1993. En consecuencia, los valores anteriores de la serie 2004-2012 fueron corregidos.Cuba: Se utilizó el tipo de cambio oficial (1 Peso Cubano = 1 Dolar estadounidense)América Latina y el Caribe: Los datos son estimados.Iberoamérica: Los datos son estimados.
+
+### PPC
+
+Definición: Conjunto de bienes y servicios producidos en un país durante un año, expresado en millones de dólares PPC.
+
+```{r}
+
+RICYT_CONTEXTO_PPC <- 
+  read_excel("indicadores RICYT.xlsx", 
+             sheet = "1.4", range = "B8:L36") %>%
+  bbdd()
+
+```
+
+
+```{r}
+
+datatable(RICYT_CONTEXTO_PPC, class = "cell-border stripe", 
+          editable = TRUE, extensions = "Buttons",
+          options = list(dom = "Bfrtip",
+                         buttons = c("copy", "csv", "excel", "pdf", "print")))
+
+```
+
+
+```{r}
+
+grafico(data = RICYT_CONTEXTO_PPC,
+        xlab = "PBI (millones de U$S corrientes PPC)", ylab = "País",
+        valor1 = 8, valor2 = 2)
+
+```
+
+
+
+
+
+
+
+
+
+
+
