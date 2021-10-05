@@ -17,7 +17,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, fig.width = 10, fig.height = 10)
+knitr::opts_chunk$set(echo = TRUE, fig.width = 10)
 ```
 
 
@@ -33,68 +33,62 @@ library(ggthemes)
 ```
 
 
-# Funciones
+# Función
 
 ```{r}
 
-# PERU VS CHILE COLOMBIA MEXICO - AP
-# PERU VS ARGENTINA BRASIL PARAGUAY URUGUAY VENEZUELA - MERCOSUR
-# PERU VS COSTARICA EEUU CANADA ESPAÑA PORTUGAL - ODEC*
-# ODEC* = Países analizadas en la RICYT menos los integrantes de la AP
+tabla <- function(data, sheet, range) {
 
-bbdd <- function(data) {
- 
-  data %>% 
-  mutate(
-    Integración = 
-      case_when(País %in% c("Chile", "Colombia", "México", "Perú") ~ "AP",
-                País %in% 
-                  c("Argentina", "Brasil", "Paraguay", "Uruguay", "Venezuela") 
-                    ~ "MERCOSUR",
-                País %in% c("Costa Rica", "Estados Unidos", "Canadá", "España", 
-                            "Portugal") ~ "ODEC*",
-                TRUE ~ "OTROS_LAC")) %>%
-  filter(Integración != "OTROS_LAC")
-
+  # DATA FORMATO ANCHO
+  
+  data_w <- 
+    read_excel(data, sheet = sheet, range = range) %>%
+    mutate(
+      Integración = 
+        case_when(País == "Estados Unidos" ~ "EEUU",
+                  País == "Perú" ~ "Perú",
+                  TRUE ~ "Otros")) %>%
+    filter(País %in% c("Chile", "Colombia", "México", "Perú", "Argentina",
+                       "Brasil", "Costa Rica", "Estados Unidos"))
+  
+  datatable(data_w, class = "cell-border stripe", 
+          editable = TRUE, extensions = "Buttons",
+          options = list(dom = "Bfrtip",
+                         buttons = c("copy", "csv", "excel", "pdf",
+                                     "print")))
 }
 
-```
-
-
-```{r}
-
-grafico <- function(data, xlab, ylab, valor1, valor2) {
-
-  #FORMATO LARGO
+grafico <- function(data, sheet, range) {
   
-  data_l <- data %>%
-  gather(key = "Año", value = "value", `2010`:`2019`)  
+  # DATA FORMATO ANCHO
   
-  # PERU VS PROMEDIOS AP Y MERCOSUR
+  data_w <- 
+    read_excel(data, sheet = sheet, range = range) %>%
+    mutate(
+      Integración = 
+        case_when(País == "Estados Unidos" ~ "EEUU",
+                  País == "Perú" ~ "Perú",
+                  TRUE ~ "Otros")) %>%
+    filter(País %in% c("Chile", "Colombia", "México", "Perú", "Argentina",
+                       "Brasil", "Costa Rica", "Estados Unidos"))
   
-  data_r <- data_l %>%
-  group_by(Año, Integración) %>%
-  summarise(media = mean(value, na.rm = TRUE) %>% round(digits = 2))
+  # DATA FORMATO LARGO
   
-  # grafico
-  ggplot(data_l, 
-         mapping = aes(x = value, y = País, color = Integración)) +
-  geom_point(size = 2.5) +
-  facet_wrap(.~Año) +
-  geom_vline(data = data_r, 
-             mapping = aes(xintercept = media, color = Integración)) +
-  geom_text(data = data_r %>% filter(Integración == "AP"), 
-            mapping = aes(label = media, x = valor1 * media, y = "Venezuela"), 
-            color = "red") +
-  geom_text(data = data_r %>% filter(Integración == "MERCOSUR"), 
-            mapping = aes(label = media, x = valor1 * media, y = "Argentina"), 
-            color = "green") +
-  geom_text(data = data_r %>% filter(Integración == "ODEC*"), 
-            mapping = aes(label = media, x = valor2 * media, y = "Estados Unidos"),
-            color = "blue") +
-  theme_igray() +
-  labs(x = xlab, y = ylab)
-    
+  data_l <- data_w %>%
+    gather(key = "Año", value = "value", `2010`:`2019`) %>%
+    filter(!is.na(value))
+  
+  # GRÁFICO
+  
+  ggplot(data_l, mapping = aes(x = Año, y = value, group = País, 
+                               color = País)) +
+    geom_point(size = 2) +
+    geom_line(size = 1) +
+    facet_wrap(vars(Tipo, Integración), scales = "free") +
+    theme_wsj() +
+    theme(legend.position = "bottom") +
+    scale_x_discrete(breaks = c("2010", "2015", "2019"))
+  
 }
 
 ```
@@ -112,28 +106,8 @@ Definición: Población en millones
 
 ```{r}
 
-RICYT_CONTEXTO_POBLACION <- 
-  read_excel("indicadores RICYT.xlsx", 
-             sheet = "1.1", range = "B8:L37") %>%
-  bbdd()
-
-```
-
-
-```{r}
-
-datatable(RICYT_CONTEXTO_POBLACION, class = "cell-border stripe", 
-          editable = TRUE, extensions = "Buttons",
-          options = list(dom = "Bfrtip",
-                         buttons = c("copy", "csv", "excel", "pdf", "print")))
-
-```
-
-
-```{r}
-
-grafico(data = RICYT_CONTEXTO_POBLACION, xlab = "Población en Millones",
-        ylab = "País", valor1 = 1, valor2 = 1)
+tabla(data = "indicadores RICYT.xlsx", sheet = "1_1", range = "B8:M37")
+grafico(data = "indicadores RICYT.xlsx", sheet = "1_1", range = "B8:M37")
 
 ```
 
@@ -144,28 +118,8 @@ Definición: Población económicamente activa
 
 ```{r}
 
-RICYT_CONTEXTO_PEA <- 
-  read_excel("indicadores RICYT.xlsx", 
-             sheet = "1.2", range = "B8:L37") %>%
-  bbdd()
-
-```
-
-
-```{r}
-
-datatable(RICYT_CONTEXTO_PEA, class = "cell-border stripe", 
-          editable = TRUE, extensions = "Buttons",
-          options = list(dom = "Bfrtip",
-                         buttons = c("copy", "csv", "excel", "pdf", "print")))
-
-```
-
-
-```{r}
-
-grafico(data = RICYT_CONTEXTO_PEA, xlab = "PEA", ylab = "País", valor = 1,
-        valor2 = 1)
+tabla(data = "indicadores RICYT.xlsx", sheet = "1_2", range = "B8:M37")
+grafico(data = "indicadores RICYT.xlsx", sheet = "1_2", range = "B8:M37")
 
 ```
 
@@ -176,29 +130,8 @@ Definición: Conjunto de bienes y servicios producidos en un país durante un a�
 
 ```{r}
 
-RICYT_CONTEXTO_PBI <- 
-  read_excel("indicadores RICYT.xlsx", 
-             sheet = "1.3", range = "B8:L37") %>%
-  bbdd()
-
-```
-
-
-```{r}
-
-datatable(RICYT_CONTEXTO_PBI, class = "cell-border stripe", 
-          editable = TRUE, extensions = "Buttons",
-          options = list(dom = "Bfrtip",
-                         buttons = c("copy", "csv", "excel", "pdf", "print")))
-
-```
-
-
-```{r}
-
-grafico(data = RICYT_CONTEXTO_PBI,
-        xlab = "PBI (millones de U$S corrientes)", ylab = "País", valor1 = 8,
-        valor2 = 2)
+tabla(data = "indicadores RICYT.xlsx", sheet = "1_3", range = "B8:M37")
+grafico(data = "indicadores RICYT.xlsx", sheet = "1_3", range = "B8:M37")
 
 ```
 
@@ -209,40 +142,203 @@ Notas generales: Las estimaciones en dólares fueron obtenidas aplicando los dat
 
 Definición: Conjunto de bienes y servicios producidos en un país durante un año, expresado en millones de dólares PPC.
 
+
 ```{r}
 
-RICYT_CONTEXTO_PPC <- 
-  read_excel("indicadores RICYT.xlsx", 
-             sheet = "1.4", range = "B8:L36") %>%
-  bbdd()
+tabla(data = "indicadores RICYT.xlsx", sheet = "1_4", range = "B8:M36")
+grafico(data = "indicadores RICYT.xlsx", sheet = "1_4", range = "B8:M36")
 
 ```
 
 
+Notas generales: Los valores se encuentran expresados en Paridad de Poder de Compra (PPC) de acuerdo a los factores de conversión del Banco Mundial sobre la información en moneda local provista por cada país. Argentina: En 2014 el Instituto Nacional de Estadísticas y Censos de Argentina ha modificado su metodología para el cálculo del PBI  tomando como año base a 2004 en lugar de 1993. En consecuencia, los valores anteriores de la serie 2004-2012 fueron corregidos.América Latina y el Caribe: Los datos son estimados.Iberoamérica: Los datos son estimados.
+
+## Categoría: Insumo
+
+### Recursos Financieros I+D
+
+#### Gasto en I+D en dólares
+
+Definición: Gasto realizado dentro de cada país en I+D, tanto por el sector público, como por el sector privado expresado en dólares corrientes.
+
 ```{r}
 
-datatable(RICYT_CONTEXTO_PPC, class = "cell-border stripe", 
-          editable = TRUE, extensions = "Buttons",
-          options = list(dom = "Bfrtip",
-                         buttons = c("copy", "csv", "excel", "pdf", "print")))
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_1", range = "B8:M33")
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_1", range = "B8:M33")
 
 ```
 
 
+#### Gasto en I+D en PPC
+
+Definición: Gasto realizado dentro de cada país en I+D, tanto por el sector público, como por el sector privado expresado en dólares PPC.
+
 ```{r}
 
-grafico(data = RICYT_CONTEXTO_PPC,
-        xlab = "PBI (millones de U$S corrientes PPC)", ylab = "País",
-        valor1 = 8, valor2 = 2)
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_2", range = "B8:M32")
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_2", range = "B8:M32")
 
 ```
 
 
+#### Gasto en I+D en relación al PBI
+
+Definición: Esfuerzo relativo del país en materia de I+D, tomando como referencia el PIB.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_3", range = "B8:M33")
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_3", range = "B8:M33")
+
+```
 
 
+Notas generales: ACT: Corresponde a Actividades Científicas y Tecnológicas. I+D: Corresponde a Investigación y Desarrollo Experimental.México: La información consignada como gasto en ACT refiere únicamente al Gasto Federal en ciencia y tecnología.Perú: Los valores de 2011 a 2013 corresponden a la ejecución del gasto del Programa de Ciencia y Tecnología (Ministerio de Economía y Finanzas).
+
+#### Gasto en I+D por habitante en dólares
+
+Definición: Gasto en I+D, expresado dólares corrientes, en relación a la cantidad de habitantes del país.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_4", range = "B8:M33")
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_4", range = "B8:M33")
+
+```
 
 
+#### Gasto en I+D por habitante en PPC
 
+Definición: Gasto en I+D, expresado en dólares PPC, en relación a la cantidad de habitantes del país.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_5", range = "B8:M32")
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_5", range = "B8:M32")
+
+```
+
+
+#### Gasto en I+D por investigador en miles de dólares
+
+Definición: Gasto en I+D total del país, expresado en miles de dólares corrientes, dividido el número de investigadores (calculados en equivalencia a jornada completa y en personas físicas).
+
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_6", range = "B8:M56")
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_6", range = "B8:M56")
+
+```
+
+
+Notas generales: Investigadores: Incluye Becarios de I+D. EJC: corresponde a Equivalencia a Jornada Completa.México: La información consignada como gasto en ACT refiere únicamente al Gasto Federal en ciencia y tecnología.
+
+#### Gasto en I+D por investigador en PPC
+
+Definición: Gasto en I+D total del país, expresado en miles de dólares PPC, dividido el número de investigadores (calculados en equivalencia a jornada completa y en personas físicas).
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_7", range = "B8:M54")
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_7", range = "B8:M54")
+
+```
+
+
+Notas generales: Las estimaciones en Poder de Paridad de Compra (PPC) fueron obtenidas aplicando los datos de Tasa de Conversión del Banco Mundial sobre la información en moneda local provista por cada país.México: La información consignada como gasto en ACT refiere únicamente al Gasto Federal en ciencia y tecnología.
+
+
+#### Gasto en I+D por sector de financiamiento
+
+Definición: Gasto en I+D según la fuente de financiamiento. Los valores se encuentran expresados en porcentajes en relación a la suma de los valores de las categorías disponibles para este indicador.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_8", range = "B8:M118")
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_8", range = "B8:M118")
+
+```
+
+
+Chile: Datos bajo revisión metodológica.Costa Rica: Los datos de empresas corresponden a los montos financiados por las empresas privadas pero que no se reportan como montos de I+D ejecutados por las empresas ( datos  recopilados por medio del cuestionario de innovación empresarial).
+
+#### Gasto en I+D financiado por el sector empresas por tipo de empresa
+
+Definición: Gasto en I+D financiado por el sector empresas por tipo de empresa
+
+#### Gasto en I+D por sector de ejecución
+
+Definición: Gasto en I+D según el sector que lo ejecuta. Los valores se encuentran expresados en porcentajes en relación a la suma de los valores de las categorías disponibles para este indicador.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_10", range = "B8:M84")
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_10", range = "B8:M84")
+
+```
+
+
+Chile: Datos bajo revisión metodológica.Costa Rica: En el rubro de empresas se incluye únicamente datos de la empresa privada, cuyo aporte es directo y exclusivo en I+D.
+
+#### Gasto en I+D ejecutado por el sector empresas, por tipo de empresa
+
+Definición: Gasto en I+D ejecutado por el sector empresas por tipo de empresa
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_11", range = "B8:M18")
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_11", range = "B8:M18")
+
+```
+
+
+#### Gasto en I+D por tipo de costos
+
+Definición: Gasto en I+D según el tipo de costos. Los valores se encuentran expresados en porcentajes en relación a la suma de los valores de las categorías disponibles para este indicador.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_12", range = "B8:M34")
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_12", range = "B8:M34")
+
+```
+
+
+##### Gasto en I+D por tipo de costos, ejecutado por Sector Gobierno
+
+Definición: Gasto en I+D por tipo de costos, ejecutado por Sector Gobierno.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_12_1", range = "B8:M30")
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_12_1", range = "B8:M30")
+
+```
+
+
+##### Gasto en I+D por tipo de costos, ejecutado por Sector Empresas (Públicas y Privadas)
+
+Definición: Gasto en I+D por tipo de costos, ejecutado por Sector EMPRESAS (Públicas y Privadas)
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_12_2", range = "B8:M20")
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_12_2", range = "B8:M20")
+
+```
+
+
+##### Gasto en I+D por tipo de costos, ejecutado por Sector Educación Superior
+
+Definición: Gasto en I+D por tipo de costos, ejecutado por Sector Educación Superior
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_12_3", range = "B8:M28")
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_12_3", range = "B8:M28")
+
+```
 
 
 
