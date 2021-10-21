@@ -1,0 +1,178 @@
+---
+title: " Indicator: `r params$Indicator`"
+author: "Hernan Perci Nuñez Palomino"
+date: "Última edición `r format(Sys.time(), '%d %B %Y')`"
+output: word_document
+params:
+  Indicator: GERD - Experimental development %
+---
+
+Notas: 
+
+* La variable params se usa para indicar el indicador o indice a usar.
+* Cambiar manualmente labels de scale_y_continuos.
+* Cambiar también el año de expand_grid.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+
+```{r}
+
+library(readxl)
+library(tidyverse)
+library(knitr)
+library(ggthemes)
+library(scales)
+library(ggflags)
+
+```
+
+
+```{r}
+
+Indicadores <- 
+  read_excel("Indicadores.xlsx",
+             col_types = c("skip", "text", "skip", "text", "numeric",
+                           "skip", "numeric", "skip", "skip", "skip")) %>%
+  rename(País = Country, Indicator = Indicator2, Año = TIME)
+
+```
+
+
+```{r}
+
+Indicators <-
+  Indicadores %>%
+  filter(País == "Peru") %>%
+  select(Indicator) %>%
+  distinct() %>%
+  as_vector()
+
+```
+
+
+```{r}
+
+Data <-
+  Indicadores %>%
+  filter(Indicator %in% params$Indicator) %>%
+  filter(País %in% c("Argentina", "Brazil", "Chile", "Colombia",
+                        "Mexico", "Peru", "Israel", "Republic of Korea",
+                        "United Kingdom of Great Britain and Northern Ireland", "United States of America", "Germany", "Canada"))
+  
+```
+
+
+```{r}
+
+Data %>%
+  select(País, Año, Value) %>%
+  rename(País = País, Año = Año, Valor = Value) %>%
+  mutate(País = case_when(País == "Brazil" ~ "Brasil",
+                          País == "Mexico" ~ "México",
+                          País == "Peru" ~ "Perú",
+                          País == "Republic of Korea" ~ "Corea del Sur",
+                          País == "United Kingdom of Great Britain and Northern Ireland" ~ "Reino Unido",
+                          País == "United States of America" ~ "EE.UU.",
+                          País == "Germany" ~ "Alemania",
+                          País == "Canada" ~ "Canadá",
+                          TRUE ~ País)) %>%
+  spread(key = País, value = Valor) %>%
+  kable()
+
+```
+
+
+```{r}
+
+expand_grid(Año = 1996:2019,
+            País = c("Argentina", "Brazil", "Chile", "Colombia",
+                        "Mexico", "Peru", "Israel", "Republic of Korea",
+                        "United Kingdom of Great Britain and Northern Ireland", "United States of America", "Germany", "Canada")) %>%
+  left_join(Data, by = c("Año", "País")) %>%
+    mutate(País = case_when(País == "Argentina" ~ "ar",
+                               País == "Brazil" ~ "br",
+                               País == "Chile" ~ "cl",
+                               País == "Colombia" ~ "co",
+                               País == "Mexico" ~ "mx",
+                               País == "Peru" ~ "pe")) %>%
+    filter(!is.na(País)) %>%
+    group_by(País) %>%
+    mutate(suma = sum(Value, na.rm = TRUE)) %>%
+    filter(suma != 0) %>%
+    select(País, Año, Value) %>%
+    group_by(País) %>%
+    mutate(Año = factor(Año), País_x = Año[!is.na(Value)] %>%
+           droplevels() %>% levels() %>% max(),
+           País_y = Value[País_x == Año]) %>%
+    ggplot(mapping = aes(x = Año, y = Value, group = País, color = País)) +
+    geom_point(size = 2) +
+    geom_line(size = 2) +
+    geom_flag(mapping = aes(x = País_x, y = País_y, country = País)) +
+    theme_wsj(color = "blue") +
+    theme(legend.position = "bottom", legend.title = element_text("País"),
+          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    scale_y_continuous(labels = label_number(suffix = "%")) +
+    scale_colour_manual(values = c("ar" = "cornflowerblue",
+                                   "br" = "chartreuse3",
+                                   "cl" = "blue4",
+                                   "co" = "goldenrod2",
+                                   "mx" = "darkgreen",
+                                   "pe" = "firebrick3"))
+
+```
+
+
+```{r}
+
+expand_grid(Año = 2010:2019,
+            País = c("Argentina", "Brazil", "Chile", "Colombia",
+                        "Mexico", "Peru", "Israel", "Republic of Korea",
+                        "United Kingdom of Great Britain and Northern Ireland", "United States of America", "Germany", "Canada")) %>%
+  left_join(Data, by = c("Año", "País")) %>%
+    mutate(País = case_when(País == "Peru" ~ "pe",
+                               País == "Israel" ~ "il",
+                               País == "Republic of Korea" ~ "kr",
+                               País == "United Kingdom of Great Britain and Northern Ireland" ~ "gb",
+                               País == "United States of America" ~ "us",
+                               País == "Germany" ~ "de",
+                               País == "Canada" ~ "ca")) %>%
+    filter(!is.na(País)) %>%
+    group_by(País) %>%
+    mutate(suma = sum(Value, na.rm = TRUE)) %>%
+    filter(suma != 0) %>%
+    select(País, Año, Value) %>%
+    group_by(País) %>%
+    mutate(Año = factor(Año), País_x = Año[!is.na(Value)] %>%
+           droplevels() %>% levels() %>% max(), 
+           País_y = Value[País_x == Año]) %>%
+    ggplot(mapping = aes(x = Año, y = Value, group = País, color = País)) +
+    geom_point(size = 2) +
+    geom_line(size = 2) +
+    geom_flag(mapping = aes(x = País_x, y = País_y, country = País)) +
+    theme_wsj(color = "blue") +
+    theme(legend.position = "bottom", 
+          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    scale_y_continuous(labels = label_number(suffix = "%")) +
+    scale_colour_manual(values = c("pe" = "firebrick3",
+                                   "il" = "blue4",
+                                   "kr" = "cornflowerblue",
+                                   "gb" = "darkgreen",
+                                   "us" = "burlywood4",
+                                   "de" = "darkorange2",
+                                   "ca" = "coral4"))
+
+```
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,1455 @@
+---
+title: "Evidencia empírica con análisis comparativo con países de la región y OCDE - version word"
+author: "Hernan Perci Nuñez Palomino"
+date: "Última edición `r format(Sys.time(), '%d %B %Y')`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      fig.width = 8, fig.height = 15)
+```
+
+
+```{r}
+
+library(readxl)
+library(tidyverse)
+library(knitr)
+library(ggthemes)
+library(scales)
+library(ggflags)
+
+```
+
+
+```{r}
+
+tabla <- function(data, sheet, levels, labels) {
+
+  # DATA FORMATO ANCHO
+  # ordenado 2019 de mayor a menor por grupo
+  data_w <- 
+    read_excel(data, sheet = sheet) %>%
+    filter(País %in% c("Chile", "Colombia", "México", "Perú", "Argentina",
+                       "Brasil", "Estados Unidos","Canadá")) %>%
+    mutate(Tipo = factor(Tipo, levels = levels, labels = labels)) %>%
+    group_by(Tipo) %>%
+    arrange(desc(`2019`), .by_group = TRUE)
+  
+  kable(data_w, align = "llcccccccccc")
+  
+}
+
+```
+
+
+```{r}
+
+grafico <- function(data, sheet, levels, labels, label_y, row) {
+  
+  # DATA FORMATO ANCHO
+  # nombres cortos de países para el uso de geom_flag
+  data_w <- 
+    read_excel(data, sheet = sheet) %>%
+    mutate(
+      Integración = 
+        case_when(País %in% c("Estados Unidos", "Canadá") ~ "OCDE",
+                  TRUE ~ "Región")) %>%
+    filter(País %in% c("Chile", "Colombia", "México", "Perú", "Argentina",
+                       "Brasil", "Estados Unidos","Canadá")) %>%
+    mutate(País = case_when(País == "Chile" ~ "cl",
+                            País == "Colombia" ~ "co",
+                            País == "México" ~ "mx",
+                            País == "Perú" ~ "pe",
+                            País == "Argentina" ~ "ar",
+                            País == "Brasil" ~ "br",
+                            País == "Estados Unidos" ~ "us",
+                            País == "Canadá" ~ "ca")) %>%
+    mutate(Tipo = factor(Tipo, levels = levels, labels = labels))
+  
+  # DATA FORMATO LARGO
+  
+  data_l <- data_w %>%
+    gather(key = "Año", value = "value", `2010`:`2019`) %>%
+    filter(!is.na(value)) %>%
+    mutate(Año = factor(Año), Tipo = factor(Tipo), 
+           País = tolower(País)) %>%
+    group_by(Tipo, País) %>%
+    mutate(País_x = max(levels(droplevels(Año))), 
+           País_y = value[País_x == Año])
+  
+  # GRÁFICO
+  
+  ggplot(data_l, mapping = aes(x = Año, y = value, group = País, 
+                               color = País)) +
+    geom_point(size = 2) +
+    geom_line(size = 2) +
+    geom_flag(mapping = aes(x = País_x, y = País_y, country = País)) +
+    facet_grid(rows = row, scales = "free") +
+    theme_wsj(color = "blue") +
+    theme(legend.position = "bottom", legend.title = element_text("País"),
+          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+    scale_y_continuous(labels = label_y) +
+    scale_colour_manual(values = c("ar" = "cornflowerblue",
+                                   "br" = "chartreuse3",
+                                   "cl" = "blue4",
+                                   "co" = "goldenrod2",
+                                   "mx" = "darkgreen",
+                                   "pe" = "firebrick3",
+                                   "us" = "burlywood4",
+                                   "ca" = "coral4"))
+
+}
+
+```
+
+
+# Indicadores RICYT
+
+Red Iberoamericana de Indicadores de Ciencia y Tecnología.
+
+## Categoría: Contexto
+
+### PBI
+
+Definición: Conjunto de bienes y servicios producidos en un país durante un año, expresado en millones de dólares corrientes.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "1_3",
+      levels = "PBI (millones de U$S corrientes)",
+      labels = "PBI (millones de U\\$S corrientes)")
+grafico(data = "indicadores RICYT.xlsx", sheet = "1_3",
+      levels = "PBI (millones de U$S corrientes)",
+      labels = "PBI (millones de U\\$S corrientes)",
+      label_y = label_dollar(suffix = "M"), row = vars(Integración))
+
+```
+
+
+Notas generales: Las estimaciones en dólares fueron obtenidas aplicando los datos de Tipo de Cambio del Banco Mundial sobre la información en moneda local provista por cada país. Argentina: En 2014 el Instituto Nacional de Estadísticas y Censos de Argentina ha modificado su metodología para el cálculo del PBI  tomando como año base a 2004 en lugar de 1993. En consecuencia, los valores anteriores de la serie 2004-2012 fueron corregidos.Cuba: Se utilizó el tipo de cambio oficial (1 Peso Cubano = 1 Dolar estadounidense)América Latina y el Caribe: Los datos son estimados.Iberoamérica: Los datos son estimados.
+
+### PPC
+
+Definición: Conjunto de bienes y servicios producidos en un país durante un año, expresado en millones de dólares PPC.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "1_4",
+      levels = "PBI (millones de U$S corrientes PPC)",
+      labels = "PBI (millones de U\\$S corrientes PPC)")
+grafico(data = "indicadores RICYT.xlsx", sheet = "1_4",
+      levels = "PBI (millones de U$S corrientes PPC)",
+      labels = "PBI (millones de U\\$S corrientes PPC)",
+      label_y = label_dollar(suffix = "M"), row = vars(Integración))
+
+```
+
+
+Notas generales: Los valores se encuentran expresados en Paridad de Poder de Compra (PPC) de acuerdo a los factores de conversión del Banco Mundial sobre la información en moneda local provista por cada país. Argentina: En 2014 el Instituto Nacional de Estadísticas y Censos de Argentina ha modificado su metodología para el cálculo del PBI  tomando como año base a 2004 en lugar de 1993. En consecuencia, los valores anteriores de la serie 2004-2012 fueron corregidos.América Latina y el Caribe: Los datos son estimados.Iberoamérica: Los datos son estimados.
+
+## Categoría: Insumo
+
+### Recursos Financieros I+D
+
+#### Gasto en I+D en dólares
+
+Definición: Gasto realizado dentro de cada país en I+D, tanto por el sector público, como por el sector privado expresado en dólares corrientes.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_1",
+      levels = "millones de U$S corrientes",
+      labels = "millones de U\\$S corrientes")
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_1",
+      levels = "millones de U$S corrientes",
+      labels = "millones de U\\$S corrientes",
+      label_y = label_dollar(suffix = "M"), row = vars(Integración))
+
+```
+
+
+#### Gasto en I+D en PPC
+
+Definición: Gasto realizado dentro de cada país en I+D, tanto por el sector público, como por el sector privado expresado en dólares PPC.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_2",
+      levels = "millones de U$S corrientes PPC",
+      labels = "millones de U\\$S corrientes PPC")
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_2",
+      levels = "millones de U$S corrientes PPC",
+      labels = "millones de U\\$S corrientes PPC",
+      label_y = label_dollar(suffix = "M"), row = vars(Integración))
+
+```
+
+
+#### Gasto en I+D por investigador en miles de dólares
+
+Definición: Gasto en I+D total del país, expresado en miles de dólares corrientes, dividido el número de investigadores (calculados en equivalencia a jornada completa y en personas físicas).
+
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_6",
+      levels = c("Personas Físicas", "EJC"),
+      labels = c("Personas Físicas", "EJC"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_6",
+      levels = c("Personas Físicas", "EJC"),
+      labels = c("Personas Físicas", "EJC"), 
+      label_y = label_dollar(suffix = "K"), row = vars(Tipo))
+
+```
+
+
+Notas generales: Investigadores: Incluye Becarios de I+D. EJC: corresponde a Equivalencia a Jornada Completa.México: La información consignada como gasto en ACT refiere únicamente al Gasto Federal en ciencia y tecnología.
+
+#### Gasto en I+D por investigador en PPC
+
+Definición: Gasto en I+D total del país, expresado en miles de dólares PPC, dividido el número de investigadores (calculados en equivalencia a jornada completa y en personas físicas).
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_7",
+      levels = c("Personas Físicas", "EJC"),
+      labels = c("Personas Físicas", "EJC"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_7",
+      levels = c("Personas Físicas", "EJC"),
+      labels = c("Personas Físicas", "EJC"), 
+      label_y = label_dollar(suffix = "K"),
+      row = vars(Tipo))
+
+```
+
+
+Notas generales: Las estimaciones en Poder de Paridad de Compra (PPC) fueron obtenidas aplicando los datos de Tasa de Conversión del Banco Mundial sobre la información en moneda local provista por cada país.México: La información consignada como gasto en ACT refiere únicamente al Gasto Federal en ciencia y tecnología.
+
+#### Gasto en I+D por tipo de investigación
+
+Definición: Gasto en I+D según el tipo de actividad. Los valores se encuentran expresados en porcentajes en relación a la suma de los valores de las categorías disponibles para este indicador.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_13",
+      levels = c("Investigación Básica", "Investigación Aplicada",
+                 "Desarrollo Experimental"), 
+      labels = c("Investigación Básica", "Investigación Aplicada",
+                 "Desarrollo Experimental"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_13",
+        levels = c("Investigación Básica", "Investigación Aplicada",
+                 "Desarrollo Experimental"), 
+      labels = c("Investigación \n Básica", "Investigación \n Aplicada",
+                 "Desarrollo \n Experimental"),
+        label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+Notas generales: Los valores consignados a cada categoría no coinciden necesariamente con los totales imputados como gasto total. Se calculan los porcentajes en base a los valores consignados.Argentina: 2016 es un dato provisorio.
+
+##### Gasto en I+D por tipo de investigación, ejecutado por Sector Gobierno
+
+Definición: Gasto en I+D por tipo de investigación, ejecutado por Sector Gobierno
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_13_1",
+      levels = c("Investigación Básica", "Investigación Aplicada",
+                 "Desarrollo Experimental"), 
+      labels = c("Investigación Básica", "Investigación Aplicada",
+                 "Desarrollo Experimental"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_13_1",
+        levels = c("Investigación Básica", "Investigación Aplicada",
+                 "Desarrollo Experimental"), 
+      labels = c("Investigación \n Básica", "Investigación \n Aplicada",
+                 "Desarrollo \n Experimental"),
+        label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+##### Gasto en I+D por tipo de investigación, ejecutado por Sector Educación Superior
+
+Definición: Gasto en I+D por tipo de investigación, ejecutado por Sector Educación Superior
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_13_3",
+      levels = c("Investigación Básica", "Investigación Aplicada",
+                 "Desarrollo Experimental"), 
+      labels = c("Investigación Básica", "Investigación Aplicada",
+                 "Desarrollo Experimental"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_13_3",
+        levels = c("Investigación Básica", "Investigación Aplicada",
+                 "Desarrollo Experimental"), 
+      labels = c("Investigación \n Básica", "Investigación \n Aplicada",
+                 "Desarrollo \n Experimental"),
+        label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+##### Gasto en I+D por tipo de investigación, ejecutado por Sector Org. Privadas sin fines de lucro
+
+Definición: Gasto en I+D por tipo de investigación, ejecutado por Sector ORG. PRIVADAS SIN FINES DE LUCRO
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_13_4",
+      levels = c("Investigación Básica", "Investigación Aplicada",
+                 "Desarrollo Experimental"), 
+      labels = c("Investigación Básica", "Investigación Aplicada",
+                 "Desarrollo Experimental"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_13_4",
+        levels = c("Investigación Básica", "Investigación Aplicada",
+                 "Desarrollo Experimental"), 
+      labels = c("Investigación \n Básica", "Investigación \n Aplicada",
+                 "Desarrollo \n Experimental"),
+        label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+#### Gasto en I+D por disciplina científica
+
+Definición: Gasto en I+D según la distribución de los recursos de acuerdo a las disciplinas científicas y tecnológicas en las cuales se centran sus actividades.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_14",
+      levels = c("Cs. Naturales y Exactas", "Ingeniería y Tecnología",
+                 "Ciencias Médicas", "Ciencias Agrícolas", 
+                 "Ciencias Sociales", "Humanidades"), 
+      labels = c("Cs. Naturales y Exactas", "Ingeniería y Tecnología",
+                 "Ciencias Médicas", "Ciencias Agrícolas", 
+                 "Ciencias Sociales", "Humanidades"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_14",
+        levels = c("Cs. Naturales y Exactas", "Ingeniería y Tecnología",
+                 "Ciencias Médicas", "Ciencias Agrícolas", 
+                 "Ciencias Sociales", "Humanidades"), 
+      labels = c("Cs. Naturales \n y Exactas", 
+                 "Ingeniería \n y Tecnología",
+                 "Ciencias \n Médicas", "Ciencias \n Agrícolas", 
+                 "Ciencias \n Sociales", "Humanidades"),
+        label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+Notas generales: Los valores consignados a cada categoría no coinciden necesariamente con los totales imputados como gasto total. Se calculan los porcentajes en base a los valores consignados.
+
+##### Gasto en I+D por disciplina científica, ejecutado por Sector Gobierno
+
+Definición: Gasto en I+D por disciplina científica, ejecutada por Sector Gobierno
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_14_1",
+      levels = c("Ciencias Naturales", "Ingeniería y Tecnología",
+                 "Ciencias Médicas", "Ciencias Agrícolas", 
+                 "Ciencias Sociales", "Humanidades"), 
+      labels = c("Ciencias Naturales", "Ingeniería y Tecnología",
+                 "Ciencias Médicas", "Ciencias Agrícolas", 
+                 "Ciencias Sociales", "Humanidades"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_14_1",
+        levels = c("Ciencias Naturales", "Ingeniería y Tecnología",
+                 "Ciencias Médicas", "Ciencias Agrícolas", 
+                 "Ciencias Sociales", "Humanidades"), 
+      labels = c("Ciencias \n Naturales", 
+                 "Ingeniería \n y Tecnología",
+                 "Ciencias \n Médicas", "Ciencias \n Agrícolas", 
+                 "Ciencias \n Sociales", "Humanidades"),
+        label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+##### Gasto en I+D por disciplina científica, ejecutado por Sector Educación Superior
+
+Definición: Gasto en I+D por disciplina científica, ejecutada por Sector Educación Superior
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_14_3",
+      levels = c("Cs. Naturales y Exactas", "Ingeniería y Tecnología",
+                 "Ciencias Médicas", "Ciencias Agrícolas", 
+                 "Ciencias Sociales", "Humanidades"), 
+      labels = c("Cs. Naturales y Exactas", "Ingeniería y Tecnología",
+                 "Ciencias Médicas", "Ciencias Agrícolas", 
+                 "Ciencias Sociales", "Humanidades"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_14_3",
+        levels = c("Cs. Naturales y Exactas", "Ingeniería y Tecnología",
+                 "Ciencias Médicas", "Ciencias Agrícolas", 
+                 "Ciencias Sociales", "Humanidades"), 
+      labels = c("Cs. Naturales \n y Exactas", 
+                 "Ingeniería \n y Tecnología",
+                 "Ciencias \n Médicas", "Ciencias \n Agrícolas", 
+                 "Ciencias \n Sociales", "Humanidades"),
+        label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+##### Gasto en I+D por disciplina científica, ejecutado por Sector Org. Privadas sin fines de lucro
+
+Definición: Gasto en I+D por disciplina científica, ejecutada por Sector ORG. PRIVADAS SIN FINES DE LUCRO
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_1_14_4",
+      levels = c("Cs. Naturales y Exactas", "Ingeniería y Tecnología",
+                 "Ciencias Médicas", "Ciencias Agrícolas", 
+                 "Ciencias Sociales", "Humanidades"), 
+      labels = c("Cs. Naturales y Exactas", "Ingeniería y Tecnología",
+                 "Ciencias Médicas", "Ciencias Agrícolas", 
+                 "Ciencias Sociales", "Humanidades"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_1_14_4",
+        levels = c("Cs. Naturales y Exactas", "Ingeniería y Tecnología",
+                 "Ciencias Médicas", "Ciencias Agrícolas", 
+                 "Ciencias Sociales", "Humanidades"), 
+      labels = c("Cs. Naturales \n y Exactas", 
+                 "Ingeniería \n y Tecnología",
+                 "Ciencias \n Médicas", "Ciencias \n Agrícolas", 
+                 "Ciencias \n Sociales", "Humanidades"),
+        label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+### Recursos Humanos I+D (Personas Físicas)
+
+#### Investigadores por sector de empleo (PF)
+
+Definición: Distribución de investigadores, expresados en personas físicas, según el sector en el que desempeñan su actividad.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_2_3",
+      levels = c("Gobierno", "Empresas (Privadas y Públicas)",
+                 "Educación Superior", "Org. priv. sin fines de lucro"), 
+      labels = c("Gobierno", "Empresas (Privadas y Públicas)",
+                 "Educación Superior", "Org. priv. sin fines de lucro"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_2_3",
+        levels = c("Gobierno", "Empresas (Privadas y Públicas)",
+                   "Educación Superior", "Org. priv. sin fines de lucro"), 
+        labels = c("Gobierno", "Empresas \n (Privadas \n y Públicas)",
+                   "Educación \n Superior",
+                   "Org. priv. \n sin fines \n de lucro"),
+        label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+Notas generales: Los valores consignados a cada categoría no coinciden necesariamente con el número total de investigadores. Se calculan los porcentajes en base a los valores consignados.  Investigadores: Incluye Becarios de I+D.Argentina: 2009 a 2013 no incluye a los investigadores de sector empresas.
+
+#### Investigadores por disciplina científica (PF)
+
+Definición: Distribución de investigadores, expresados en pesonas físicas, según la disciplina científica en la que se desempeñan.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_2_4",
+      levels = c("Cs. Naturales y Exactas", "Ingeniería y Tecnología",
+                 "Ciencias Médicas", "Ciencias Agrícolas", 
+                 "Ciencias Sociales", "Humanidades"), 
+      labels = c("Cs. Naturales y Exactas", "Ingeniería y Tecnología",
+                 "Ciencias Médicas", "Ciencias Agrícolas", 
+                 "Ciencias Sociales", "Humanidades"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_2_4",
+        levels = c("Cs. Naturales y Exactas", "Ingeniería y Tecnología",
+                 "Ciencias Médicas", "Ciencias Agrícolas", 
+                 "Ciencias Sociales", "Humanidades"), 
+      labels = c("Cs. Naturales \n y Exactas", 
+                 "Ingeniería \n y Tecnología",
+                 "Ciencias \n Médicas", "Ciencias \n Agrícolas", 
+                 "Ciencias \n Sociales", "Humanidades"),
+        label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+Notas generales: Los valores consignados a cada categoría no coinciden necesariamente con el número total de investigadores. Se calculan los porcentajes en base a los valores consignados.  Investigadores: Incluye Becarios de I+D.
+
+#### Investigadores por nivel de formación (PF)
+
+Definición: Distribución de los investigadores, expresados en personas físicas, según su máximo nivel de formación alcanzado.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_2_5",
+      levels = c("Doctorado", "Maestría", "Licenciatura o equivalente",
+                 "Terciario no universitario", "Otros"), 
+      labels = c("Doctorado", "Maestría", "Licenciatura o equivalente",
+                 "Terciario no universitario", "Otros"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_2_5",
+        levels = c("Doctorado", "Maestría", "Licenciatura o equivalente",
+                 "Terciario no universitario", "Otros"), 
+      labels = c("Doctorado", "Maestría", "Licenciatura o \n equivalente",
+                 "Terciario \n no universitario", "Otros"),
+        label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+Notas generales: Los valores consignados a cada categoría no coinciden necesariamente con el número total de investigadores. Se calculan los porcentajes en base a los valores consignados.  Investigadores: Incluye Becarios de I+D.
+
+#### Investigadores por franja etaria (PF)
+
+Definición: Investigadores, expresados en personas físicas, por franja etaria.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_2_6",
+      levels = c("Hasta 24 años", "25 a 34 años", "35 a 44 años",
+                 "45 a 54 años", "55 a 64 años", "65 años o mas"), 
+      labels = c("Hasta 24 años", "25 a 34 años", "35 a 44 años",
+                 "45 a 54 años", "55 a 64 años", "65 años o mas"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_2_6",
+        levels = c("Hasta 24 años", "25 a 34 años", "35 a 44 años",
+                 "45 a 54 años", "55 a 64 años", "65 años o mas"), 
+      labels = c("Hasta 24 años", "25 a 34 años", "35 a 44 años",
+                 "45 a 54 años", "55 a 64 años", "65 años o mas"),
+        label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+### Recursos Humanos I+D por Género
+
+#### Investigadoras por sector de empleo (PF)
+
+Definición: Investigadoras sobre el total de los investigadores de cada sector expresado en personas físicas.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_4_2",
+      levels = c("Gobierno", "Empresas (Privadas y Públicas)",
+                 "Educación Superior", "Org. priv. sin fines de lucro"), 
+      labels = c("Gobierno", "Empresas (Privadas y Públicas)",
+                 "Educación Superior", "Org. priv. sin fines de lucro"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_4_2",
+        levels = c("Gobierno", "Empresas (Privadas y Públicas)",
+                   "Educación Superior", "Org. priv. sin fines de lucro"), 
+        labels = c("Gobierno", "Empresas \n (Privadas \n y Públicas)",
+                   "Educación \n Superior",
+                   "Org. priv. \n sin fines \n de lucro"),
+        label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+#### Investigadoras por disciplina científica (PF)
+
+Definición: Investigadoras sobre el total de los investigadores de cada disciplina expresado en personas físicas.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_4_3",
+      levels = c("Ciencias Naturales y Exactas", "Ingeniería y Tecnología",
+                 "Ciencias Médicas", "Ciencias Agrícolas", 
+                 "Ciencias Sociales", "Humanidades"), 
+      labels = c("Ciencias Naturales y Exactas", "Ingeniería y Tecnología",
+                 "Ciencias Médicas", "Ciencias Agrícolas", 
+                 "Ciencias Sociales", "Humanidades"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_4_3",
+        levels = c("Ciencias Naturales y Exactas", 
+                   "Ingeniería y Tecnología", "Ciencias Médicas",
+                   "Ciencias Agrícolas", "Ciencias Sociales",
+                   "Humanidades"), 
+      labels = c("Ciencias \n Naturales \n y Exactas", 
+                 "Ingeniería \n y Tecnología", "Ciencias \n Médicas",
+                 "Ciencias \n Agrícolas", "Ciencias \n Sociales",
+                 "Humanidades"),
+        label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+Notas generales: Los valores consignados a cada categoría no coinciden necesariamente con el número total de investigadores. Se calculan los porcentajes en base a los valores consignados.  Investigadores: Incluye Becarios de I+D.
+
+#### Investigadoras por nivel de formación (PF)
+
+Definición: Investigadoras sobre el total de los investigadores en cada nivel de formación alcanzado expresado en personas físicas.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_4_4",
+      levels = c("Doctorado", "Maestría", "Licenciatura o equivalente",
+                 "Terciario no universitario", "Otros"), 
+      labels = c("Doctorado", "Maestría", "Licenciatura o equivalente",
+                 "Terciario no universitario", "Otros"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_4_4",
+        levels = c("Doctorado", "Maestría", "Licenciatura o equivalente",
+                 "Terciario no universitario", "Otros"), 
+      labels = c("Doctorado", "Maestría", "Licenciatura o \n equivalente",
+                 "Terciario \n no universitario", "Otros"),
+        label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+#### Investigadoras por franja etaria (PF)
+
+Definición: Porcentaje de Investigadoras sobre el total de los investigadores de franja etaria expresado en personas físicas.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "2_4_5",
+      levels = c("Hasta 24 años", "25 a 34 años", "35 a 44 años",
+                 "45 a 54 años", "55 a 64 años", "65 años o mas"), 
+      labels = c("Hasta 24 años", "25 a 34 años", "35 a 44 años",
+                 "45 a 54 años", "55 a 64 años", "65 años o mas"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "2_4_5",
+        levels = c("Hasta 24 años", "25 a 34 años", "35 a 44 años",
+                 "45 a 54 años", "55 a 64 años", "65 años o mas"), 
+      labels = c("Hasta 24 años", "25 a 34 años", "35 a 44 años",
+                 "45 a 54 años", "55 a 64 años", "65 años o mas"),
+        label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+## Categoría: Indicadores de educación superior
+
+### Estudiantes por nivel CINE
+
+Definición: Porcentaje de estudiantes matriculados en programas CINE 5, 6, 7 y 8 en instituciones de educación superior cualquiera sea su duración en un año académico determinado por cada nivel CINE en relación al total de estudiantes en la educación superior
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "3_2",
+      levels = c("CINE 5", "CINE 6", "CINE 7", "CINE 8"),
+      labels = c("CINE 5", "CINE 6", "CINE 7", "CINE 8"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "3_2",
+      levels = c("CINE 5", "CINE 6", "CINE 7", "CINE 8"),
+      labels = c("CINE 5", "CINE 6", "CINE 7", "CINE 8"), 
+      label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+Argentina: A partir del 2017 y según acordado con UIS UNESCO los títulos de médico, veterinario y odontólogo se informan en CINE 7, lo que explica el crecimiento dela cantidad de estudiantes en este nivel en relación con los años anteriores. Brasil: Se contabilizaron estudiantes de grado, secuencial, maestría y doctorado. Los valores constantes en el CINE 5 se refieren a las matrículas de cursos secuenciales de Formación específica. El nivel CINE anterior a 2014 no es comparable con la configuración actual.Costa Rica: Los años 2010-2012 no se pueden desagregar en nivel 6 y nivel 7 debido al cambio en la clasificación CINE.México: La CINE 7 en México corresponde a estudios de especialidad y maestría, ambos de nivel posgrado.
+
+### Estudiantes por sexo
+
+Definición: Porcentaje de estudiantes matriculados en programas CINE 5, 6, 7 y 8 en instituciones de educación superior cualquiera sea su duración en un año académico determinado por sexo en relación al total de estudiantes en la educación superior
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "3_3",
+      levels = c("Femenino", "Masculino"),
+      labels = c("Femenino", "Masculino"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "3_3",
+      levels = c("Femenino", "Masculino"),
+      labels = c("Femenino", "Masculino"), 
+      label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+Argentina: Año 2010: No incluye al subsistema superior no universitario.  Brasil: No hay información desagregada por sexo para los estudiantes de postgrado en los años 2010 a 2013.Cuba: En el 2016 se aplicó una nueva política para el acceso al CINE 6 que propició el incremento de los estudiantes con respecto al año anterior.
+
+### Estudiantes por sector de gestión
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "3_4",
+      levels = c("Público", "Privado"), labels = c("Público", "Privado"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "3_4",
+      levels = c("Público", "Privado"), labels = c("Público", "Privado"), 
+      label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+Argentina: Año 2010: No incluye al subsistema superior no universitario. Brasil: Fueron contabilizados estudiantes de grado, secuencial, maestría y doctorado. Chile: Se consideran pertenecientes al sector público las universidades del Estado. Perú: Institutos 2010-2017: ESCALE - Censo Escolar, Ministerio de Educación (MINEDU). Universidades 2010-2013: Superintendencia Nacional de Educación Superior Universitaria - Oficina de Planeamiento y Presupuesto. Universidades 2014 - 2015: Sistema de Recojo de Información (MINEDU) - Actualizado al 21 de marzo de 2018 con reporte del 98% de universidades en promedio.
+
+### Personal Académico por sexo
+
+Definición: Cantidad de personas empleadas en el nivel de educación superior que asumen la docencia, la investigación, el desarrollo tecnológico, la transferencia, la creación y extensión como su principal responsabilidad de acuerdo al sexo.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "3_6",
+      levels = c("Femenino", "Masculino"),
+      labels = c("Femenino", "Masculino"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "3_6",
+      levels = c("Femenino", "Masculino"),
+      labels = c("Femenino", "Masculino"), 
+      label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+Brasil: Persona que estuvo en ejercicio en la institución de educación superior en el año de referencia del censo. No se contabilizan las personas en situación de licencia. Costa Rica: Sólo personal del sector público. Perú: Universidades 2014-2015: Sistema de Recojo de Información (Ministerio de Educación) - Actualizado al 21 de marzo de 2018 con reporte del 71% y 79% de universidades, para los años 2014 y 2015, respectivamente. Solo se reporta información de educación superior universitaria (nivel 6).
+
+
+### Gasto total en educación superior en PPC
+
+Definición: Monto de dinero gastado, en todos los sectores, en educación superior en un año determinado, expresado en poder de paridad de compra (PPC)
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "3_7",
+      levels = "Millones PPC", labels = "Millones PPC")
+grafico(data = "indicadores RICYT.xlsx", sheet = "3_7",
+      levels = "Millones PPC", labels = "Millones PPC", 
+      label_y = label_number(suffix = "M"), row = vars(Tipo))
+
+```
+
+Argentina: Ejecución presupuestaria de los gastos corrientes y de capital. se reporta gasto de subsistema universitario, sector público. Brasil: Se reporta gasto del sector público. Chile: Corresponde al gasto total en instituciones educativas del nivel, las cuales pueden provenir de fuentes públicas o aportes privados. Colombia: Los valores están expresados en precios corrientes de cada año. México: Los valores financieros fueron desfasados un año debido al uso internacional: el año mencionado en estadística educativa se refiere al término del ciclo escolar y el año financiero se refiere al inicio del ciclo escolar.
+
+### Gasto total en educación superior en relación al PBI
+
+Definición: Monto de dinero gastado, en todos los sectores, en educación superior en un año determinado, expresado en porcentaje del Producto Interno Bruto (PIB).
+
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "3_8",
+      levels = "Gasto en relación al PBI",
+      labels = "Gasto en relación al PBI")
+grafico(data = "indicadores RICYT.xlsx", sheet = "3_8",
+      levels = "Gasto en relación al PBI",
+      labels = "Gasto en relación al PBI", 
+      label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+Argentina: Ejecución presupuestaria de los gastos corrientes y de capital. Brasil: Solo se reporta gasto público. Chile: Corresponde al gasto total en instituciones educativas del nivel, las cuales pueden provenir de fuentes públicas o aportes privados.
+
+## Categoría: Indicadores de Patentes
+
+### Tasa de dependencia
+
+Definición: Coeficiente entre patentes solicitadas por no residentes y por residentes.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "4_3",
+      levels = "Tasa de dependencia",
+      labels = "Tasa de dependencia")
+grafico(data = "indicadores RICYT.xlsx", sheet = "4_3",
+      levels = "Tasa de dependencia",
+      labels = "Tasa de dependencia", 
+      label_y = label_number(), row = vars(Tipo))
+
+```
+
+
+Notas generales: Tasa de Dependencia: Patentes solicitadas por no residentes / patentes solicitadas por residentes.
+
+### Tasa de autosuficiencia
+
+Definición: Coeficiente entre patentes solicitadas por residentes y el total de patentes solicitadas.
+
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "4_4",
+      levels = "Tasa de autosuficiencia",
+      labels = "Tasa de autosuficiencia")
+grafico(data = "indicadores RICYT.xlsx", sheet = "4_4",
+      levels = "Tasa de autosuficiencia",
+      labels = "Tasa de autosuficiencia", 
+      label_y = label_number(), row = vars(Tipo))
+
+```
+
+
+Notas generales: Tasa de Autosuficiencia: Patentes solicitadas por residentes / total de patentes solicitadas.
+
+### Coeficiente de invención
+
+Definición: Coeficiente entre patentes solicitadas por residentes y la población del país.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "4_5",
+      levels = "Coeficiente de invención",
+      labels = "Coeficiente de invención")
+grafico(data = "indicadores RICYT.xlsx", sheet = "4_5",
+      levels = "Coeficiente de invención",
+      labels = "Coeficiente de invención", 
+      label_y = label_number(), row = vars(Tipo, Integración))
+
+```
+
+
+Notas generales: Coeficiente de invención: Refiere a patentes solicitadas por residentes cada 100 000 habitantes.
+
+### Solicitud de patentes PCT
+
+Definición: Número de patentes solicitadas a través del convenio PCT de la OMPI, según país de residencia del solicitante.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "4_6", levels = "Patentes",
+      labels = "Patentes")
+grafico(data = "indicadores RICYT.xlsx", sheet = "4_6", levels = "Patentes",
+      labels = "Patentes", label_y = label_number(),
+      row = vars(Tipo, Integración))
+
+```
+
+
+## Indicadores Bibliométricos
+
+### Publicaciones en SCI
+
+Definición: Número de artículos registrados en SCI, firmados por autores de instituciones de cada país.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "5_1",
+      levels = "Publicaciones en SCI", labels = "Publicaciones en SCI")
+grafico(data = "indicadores RICYT.xlsx", sheet = "5_1",
+        levels = "Publicaciones en SCI", labels = "Publicaciones en SCI",
+        label_y = label_number(), row = vars(Tipo, Integración))
+
+```
+
+
+Notas generales: Los subtotales difieren del total debido a las copublicaciones que se registran como un entero para cada país participante. Se incluyen los indices "Science Citation Index Expanded", "Social Sciences Citation Index" y "Arts and Humanities Citation Index" de la colección principal de Web of Science
+
+### Publicaciones en SCOPUS
+
+Definición: Número de artículos registrados en SCOPUS, firmados por autores de instituciones de cada país.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "5_2",
+      levels = "Publicaciones en SCOPUS",
+      labels = "Publicaciones en SCOPUS")
+grafico(data = "indicadores RICYT.xlsx", sheet = "5_2",
+        levels = "Publicaciones en SCOPUS",
+        labels = "Publicaciones en SCOPUS",
+        label_y = label_number(), row = vars(Tipo, Integración))
+
+```
+
+
+Notas generales: Los subtotales difieren del total debido a las copublicaciones que se registran como un entero para cada país participante.
+
+### Publicaciones en CLASE
+
+Definición: Número de artículos registrados en CLASE, firmados por autores de instituciones de cada país.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "5_5",
+      levels = "Publicaciones en CLASE", labels = "Publicaciones en CLASE")
+grafico(data = "indicadores RICYT.xlsx", sheet = "5_5",
+        levels = "Publicaciones en CLASE", 
+        labels = "Publicaciones en CLASE", label_y = label_number(),
+        row = vars(Tipo))
+
+```
+
+
+Notas generales: Los subtotales difieren del total debido a las copublicaciones que se registran como un entero para cada país participante. Fuente de datos: Grupo de Análisis Cuantitativo en Ciencia y Tecnología (ACUTE), CCHS-CSIC
+
+### Publicaciones en relación con Población, PBI y Gasto en I+D
+
+#### Publicaciones en SCI por habitante
+
+Definición: Número de artículos correspondientes a autores de distintos países, registrados en SCI cada 100 mil habitantes
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "5_7_1",
+      levels = "Publicaciones SCI cada 100000 habitantes",
+      labels = "Publicaciones SCI cada 100000 habitantes")
+grafico(data = "indicadores RICYT.xlsx", sheet = "5_7_1",
+        levels = "Publicaciones SCI cada 100000 habitantes", 
+        labels = "Publicaciones SCI cada 100000 habitantes",
+        label_y = label_number(), row = vars(Tipo, Integración))
+
+```
+
+
+#### Publicaciones en SCOPUS por habitante
+
+Definición: Número de artículos correspondientes a autores de distintos países, registrados en SCOPUS cada 100 mil habitantes
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "5_7_2",
+      levels = "Publicaciones SCOPUS cada 100000 habitantes",
+      labels = "Publicaciones SCOPUS cada 100000 habitantes")
+grafico(data = "indicadores RICYT.xlsx", sheet = "5_7_2",
+        levels = "Publicaciones SCOPUS cada 100000 habitantes", 
+        labels = "Publicaciones SCOPUS cada 100000 habitantes",
+        label_y = label_number(), row = vars(Tipo, Integración))
+
+```
+
+
+#### Publicaciones en SCI en relación al PBI
+
+Definición: PIB del país, expresado en miles de dólares, dividido el número de artículos indexados en SCI.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "5_7_3",
+      levels = c("Publicaciones en SCI en relacion al PIB (USD)",
+                 "Publicaciones en SCI en relacion al PIB (PPC)"),
+      labels = c("Publicaciones en SCI en relacion al PIB (USD)",
+                 "Publicaciones en SCI en relacion al PIB (PPC)"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "5_7_3",
+        levels = c("Publicaciones en SCI en relacion al PIB (USD)",
+                   "Publicaciones en SCI en relacion al PIB (PPC)"), 
+        labels = c("Publicaciones en SCI en relacion al PIB (USD)",
+                   "Publicaciones en SCI en relacion al PIB (PPC)"),
+        label_y = label_dollar(suffix = "K"), row = vars(Tipo))
+
+```
+
+
+#### Publicaciones en SCOPUS en relación al PBI
+
+Definición: PIB del país, expresado en miles de dólares, dividido el número de artículos indexados en SCOPUS.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "5_7_4",
+      levels = c("Publicaciones en SCOPUS en relacion al PIB (USD)",
+                 "Publicaciones en SCOPUS en relacion al PIB (PPC)"),
+      labels = c("Publicaciones en SCOPUS en relacion al PIB (USD)",
+                 "Publicaciones en SCOPUS en relacion al PIB (PPC)"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "5_7_4",
+        levels = c("Publicaciones en SCOPUS en relacion al PIB (USD)",
+                   "Publicaciones en SCOPUS en relacion al PIB (PPC)"), 
+        labels = c("Publicaciones en SCOPUS en relacion al PIB (USD)",
+                   "Publicaciones en SCOPUS en relacion al PIB (PPC)"),
+        label_y = label_dollar(suffix = "K"), row = vars(Tipo))
+
+```
+
+
+#### Publicaciones en SCI en relación al gasto en I+D
+
+Definición: Gasto en I+D total del país, expresado en miles de dólares, dividido el número de artículos indexados en SCI.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "5_7_5",
+      levels = c("Publicaciones en SCI en relacion al Gasto en I+D (cada millón de U$S corriente)", "Publicaciones en SCI en relacion al Gasto en I+D (cada millón de U$S PPC)"),
+      labels = c("Publicaciones en SCI en relacion al Gasto en I+D (cada millón de U\\$S corriente)", "Publicaciones en SCI en relacion al Gasto en I+D (cada millón de U\\$S PPC)"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "5_7_5",
+        levels = c("Publicaciones en SCI en relacion al Gasto en I+D (cada millón de U$S corriente)", "Publicaciones en SCI en relacion al Gasto en I+D (cada millón de U$S PPC)"), 
+        labels = c("Publicaciones en SCI en relacion al Gasto en I+D \n (cada millón de U\\$S corriente)", "Publicaciones en SCI en relacion al Gasto en I+D \n (cada millón de U\\$S PPC)"),
+        label_y = label_dollar(suffix = "K"), row = vars(Tipo))
+
+```
+
+
+#### Publicaciones en Scopus en relación al gasto en I+D
+
+Definición: Gasto en I+D total del país, expresado en miles de dólares, dividido el número de artículos indexados en SCOPUS.
+
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "5_7_6",
+      levels = c("Publicaciones en SCOPUS en relacion al Gasto en I+D (cada millón de U$S corrientes)", "Publicaciones en SCOPUS en relacion al Gasto en I+D (cada millón de U$S PPC)"),
+      labels = c("Publicaciones en SCOPUS en relacion al Gasto en I+D (cada millón de U\\$S corrientes)", "Publicaciones en SCOPUS en relacion al Gasto en I+D (cada millón de U\\$S PPC)"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "5_7_6",
+        levels = c("Publicaciones en SCOPUS en relacion al Gasto en I+D (cada millón de U$S corrientes)", "Publicaciones en SCOPUS en relacion al Gasto en I+D (cada millón de U$S PPC)"), 
+        labels = c("Publicaciones en SCOPUS en relacion al Gasto en I+D \n (cada millón de U\\$S corrientes)", "Publicaciones en SCOPUS en relacion al Gasto en I+D \n (cada millón de U\\$S PPC)"),
+        label_y = label_dollar(suffix = "K"), row = vars(Tipo))
+
+```
+
+
+#### Publicaciones en SCI cada 100 investigadores
+
+Definición: Número de artículos registrados en SCI cada 100 investigadores expresados en personas físicas y en equivalencia a jornada completa.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "5_7_7",
+      levels = c("Publicaciones en SCI cada 100 investigadores (PF)",
+                 "Publicaciones en SCI cada 100 investigadores (EJC)"),
+      labels = c("Publicaciones en SCI cada 100 investigadores (PF)",
+                 "Publicaciones en SCI cada 100 investigadores (EJC)"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "5_7_7",
+        levels = c("Publicaciones en SCI cada 100 investigadores (PF)",
+                 "Publicaciones en SCI cada 100 investigadores (EJC)"), 
+        labels = c("Publicaciones en SCI cada 100 investigadores (PF)",
+                 "Publicaciones en SCI cada 100 investigadores (EJC)"),
+        label_y = label_number(), row = vars(Tipo))
+
+```
+
+
+#### Publicaciones en SCOPUS cada 100 investigadores
+
+Definición: Número de artículos registrados en SCOPUS cada 100 investigadores expresados en personas físicas y en equivalencia a jornada completa
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "5_7_8",
+      levels = c("Publicaciones en SCOPUS cada 100 investigadores (PF)",
+                 "Publicaciones en SCOPUS cada 100 investigadores (EJC)"),
+      labels = c("Publicaciones en SCOPUS cada 100 investigadores (PF)",
+                 "Publicaciones en SCOPUS cada 100 investigadores (EJC)"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "5_7_8",
+        levels = c("Publicaciones en SCOPUS cada 100 investigadores (PF)",
+                 "Publicaciones en SCOPUS cada 100 investigadores (EJC)"),
+        labels = c("Publicaciones en SCOPUS cada 100 investigadores (PF)",
+                 "Publicaciones en SCOPUS cada 100 investigadores (EJC)"),
+        label_y = label_number(), row = vars(Tipo))
+
+```
+
+
+### Publicaciones según disciplina
+
+#### Publicaciones en SCOPUS según disciplina
+
+Definición: Porcentaje de artículos registrados en SCOPUS según la clasificación disciplinar de la base de datos
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "5_8_1",
+      levels = c("Ciencias de la Salud", "Ciencias de la Vida",
+                 "Ciencias Físicas", "Ciencias Sociales"),
+      labels = c("Ciencias de la Salud", "Ciencias de la Vida",
+                 "Ciencias Físicas", "Ciencias Sociales"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "5_8_1",
+        levels = c("Ciencias de la Salud", "Ciencias de la Vida",
+                 "Ciencias Físicas", "Ciencias Sociales"),
+        labels = c("Ciencias de la Salud", "Ciencias de la Vida",
+                 "Ciencias Físicas", "Ciencias Sociales"),
+        label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+### Publicaciones en colaboración internacional
+
+#### Publicaciones en SCOPUS en colaboración internacional
+
+Definición: Porcentaje de artículos registrados en SCOPUS firmados en colaboración con instituciones de otro país.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "5_9_1",
+      levels = c("Colaboración Internacional"),
+      labels = c("Colaboración Internacional"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "5_9_1",
+        levels = c("Colaboración Internacional"),
+        labels = c("Colaboración Internacional"),
+        label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+#### Publicaciones en SCOPUS en colaboración internacional según disciplina
+
+Definición: Porcentaje de artículos registrados en SCOPUS firmados en colaboración con instituciones de otro país en cada disciplina según la clasificación disciplinar de la base de datos.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "5_9_2",
+      levels = c("Ciencias de la Salud", "Ciencias de la Vida",
+                 "Ciencias Físicas", "Ciencias Sociales"),
+      labels = c("Ciencias de la Salud", "Ciencias de la Vida",
+                 "Ciencias Físicas", "Ciencias Sociales"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "5_9_2",
+        levels = c("Ciencias de la Salud", "Ciencias de la Vida",
+                 "Ciencias Físicas", "Ciencias Sociales"),
+        labels = c("Ciencias de la Salud", "Ciencias de la Vida",
+                 "Ciencias Físicas", "Ciencias Sociales"),
+        label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+## Categoría: Innovación
+
+### Industria Manufacturera
+
+#### Gasto en actividades de Innovación
+
+Definición: Gasto en Actividades de Innovación - Industria Manufacturera.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "6_1_1",
+      levels = "millones de U$S corrientes",
+      labels = "millones de U\\$S corrientes")
+grafico(data = "indicadores RICYT.xlsx", sheet = "6_1_1",
+      levels = "millones de U$S corrientes",
+      labels = "millones de U\\$S corrientes",
+      label_y = label_dollar(suffix = "M"), row = vars(Tipo))
+
+```
+
+
+Notas generales: En millones de dólares. Colombia: Gasto en actividades de innovación 2005-2006 incluye: maquinaria y equipo, Hardware, Tecnologías de gestión, introducción de innovaciones en el mercado, transferencia de tecnología y consultoría, tecnologías de la información y comunicaciones, biotecnología, ingeniería y diseño industrial, I+D, formación y capacitación. Gasto en actividades de innovación 2007-2012 incluye: maquinaria y equipo, I+D interna, I+D externa, tecnologías de la información y las telecomunicaciones, mercadeo de innovaciones, transferencia de tecnología, asistencia técnica y consultoría, biotecnología (sólo 2007 y 2008), ingeniería y diseño industrial, formación y capacitación. México: Gasto en actividades de innovación 1996 incluye: adquisición de maquinaria y equipo relacionados con la innovación de producto o proceso; IDE intramuros; diseño industrial o actividades de arranque de producción de innovaciones de producto; adquisición de otra tecnología externa ligada a la innovación de producto o proceso; IDE extramuros; lanzamiento al mercado de innovaciones tecnológicas; y capacitación ligada a actividades de innovación. Gasto en actividades de innovación 2000 y 2011 incluye: Adquisición de maquinaria y equipo relacionada con la innovación de producto o proceso, Adquisición de otra tecnología externa ligada a la innovación de producto o proceso, Diseño industrial o actividades de arranque de producción tecnológicamente nuevos o mejorados, Capacitación ligada a actividades de innovación, Lanzamiento al mercado de innovaciones tecnológicas, Investigación y Desarrollo de Tecnología, Adquisición de software u otra tecnología externa ligada a la innovación tecnológica. Perú: Gasto en actividades de innovación incluye: Investigación y desarrollo Interna, Investigación y desarrollo Externa, Adquisición de bienes de capital, Adquisición de hardware, Adquisición de software, Transferencia de tecnología, Diseño e ingeniería industrial, Capacitación, Estudios de mercado.
+
+#### Actividades de Innovación
+
+Definición: Actividades científicas tecnológicas, organizativas, financieras y comerciales que conducen efectivamente, o tienen por objeto conducir, a la introducción de innovaciones (en millones de dólares corrientes).
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "6_1_2",
+      levels = c("I+D Interna", "I+D externa", "Maquinaria y equipo / Tecnología incorporada al capital", "Hardware", "Software", "Capacitación", "Consultorías", "Transferencia de Tecnología (patentes, licencias)", "Ingeniería y Diseño Industrial (proyecto industrial, ensayos de producción y preparaciones técnicas)", "Innovaciones Tecnológicas en el mercado", "Gestión", "Otros"),
+      labels = c("I+D Interna", "I+D externa", "Maquinaria y equipo / Tecnología incorporada al capital", "Hardware", "Software", "Capacitación", "Consultorías", "Transferencia de Tecnología (patentes, licencias)", "Ingeniería y Diseño Industrial (proyecto industrial, ensayos de producción y preparaciones técnicas)", "Innovaciones Tecnológicas en el mercado", "Gestión", "Otros"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "6_1_2",
+      levels = c("I+D Interna", "I+D externa", "Maquinaria y equipo / Tecnología incorporada al capital", "Hardware", "Software", "Capacitación", "Consultorías", "Transferencia de Tecnología (patentes, licencias)", "Ingeniería y Diseño Industrial (proyecto industrial, ensayos de producción y preparaciones técnicas)", "Innovaciones Tecnológicas en el mercado", "Gestión", "Otros"),
+      labels = c("I+D \n Interna", "I+D \n externa", "Maquinaria \n y \n equipo / \n Tecnología", "Hardware", "Software", "Capacitación", "Consultorías", "Transferencia \n de \n Tecnología", "Ingeniería \n y \n Diseño \n Industrial", "Innovaciones \n Tecnológicas \n en el \n mercado", "Gestión", "Otros"),
+      label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+Notas generales: En millones de dólares. Argentina: I+D interna 1992-1996 corresponde al agregado I+D interna e I+D externa. Actividades de innovación incluye: I+D interna, I+D externa, Bienes de capital, hardware, software, transferencia de tecnología, ingeniería y diseño industrial, gestión (solo 1998-2000), capacitación, consultorías. Brasil: Actividades de innovación incluye: I+D interna, I+D externa, otros conocimientos externos, Bienes de capital, capacitación, introducción de innovaciones tecnológicas al mercado, proyecto industrial y otras preparaciones técnicas, adquisición de software (solo 2005, 2008 y 2011). Ingeniería y diseño industrial corresponde: “proyecto industrial y otras preparaciones técnicas". Chile: Actividades de innovación incluye: 1994-1998: I+D, transferencias, capacitación, licencias (se excluye maquinaria y equipo); 2000 en adelante: I+D, Adquisición de Conocimientos externos, capacitación, maquinaria y equipo, introducción de innovaciones al mercado, otras preparaciones (2003 en adelante). Recursos humanos en I+D: área formal equivale a recursos humanos en I+D equivalente jornada completa. Ingeniería y diseño industrial corresponde: gasto en “otras preparaciones (desarrollo de procesos de instalación y puesta a punto de nuevos equipos o bien la puesta en marcha de nuevos procesos productivos asociados directamente a innovaciones de proceso).” Transferencia de tecnología corresponde: gasto en “otros conocimientos externos”. Colombia: Recursos humanos en I+D en área formal: corresponde recursos humanos que participaron en actividades científicas, Tecnológicas y de innovación (ACTI). Transferencia de tecnología 2003-2006 corresponde: gastos en la “adquisicón de patentes, registros de propiedad, licencias, publicaciones técnicas, asistencia a ferias especializadas, asistencia técnica y consultoría.” Maquinaria y equipo 2003-2004 corresponde: gastos en la “adquisición de maquinaria, equipo, nuevas tecnología biológicas, equipo de información y comunicaciones.” Gasto en I+D interna 2010-2011 en servicios corresponde al agregado de gasto en I+D interna y externa. México: RRHH en I+D en área formal: corresponde personal dedicado a las actividades de investigación y desarrollo tecnológico intramuros.
+
+#### Empresas Innovadoras
+
+Definición: Firmas que han implementado una innovación durante el período de referencia, ya sea de producto y/o proceso y/o organización y/o de comercialización. Incluye innovaciones nuevas para la firma y/o el mercado internacional.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "6_1_4",
+      levels = c("Total Empresas", "Micro Empresas",
+                 "Pequeñas Empresas", "Medianas Empresas",
+                 "Grandes Empresas"),
+      labels = c("Total Empresas", "Micro Empresas",
+                 "Pequeñas Empresas", "Medianas Empresas",
+                 "Grandes Empresas"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "6_1_4",
+      levels = c("Total Empresas", "Micro Empresas",
+                 "Pequeñas Empresas", "Medianas Empresas",
+                 "Grandes Empresas"),
+      labels = c("Total \n Empresas", "Micro \n Empresas",
+                 "Pequeñas \n Empresas", "Medianas \n Empresas",
+                 "Grandes \n Empresas"),
+      label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+Argentina: Encuesta 2007: Tamaño de Empresa. Micro: No cubierta, Pequeña: hasta 70 millones de Pesos, Mediana: 71 a 280 millones de Pesos, Grande: 281 millones de Pesos o más. Encuesta 2008: Tamaño de Empresa. Micro: No cubierta, Pequeña: hasta 73 millones de Pesos, Mediana: 74 a 296 millones de Pesos, Grande: 297 millones de Pesos o más. Brasil: Tamaño de Empresa. Micro: No cubierta, Pequeña: hasta 10 empleados, Mediana: Sin especificar, Grande: Sin Especificar. Para todos los ejercicios, la pregunta sobre innovaciones en organización admite respuesta múltiple (distintos tipos de innovaciones en organización) y los resultados no se presentan por cantidad de empresas sino por cantidad de respuestas. Por ello, el indicador no se puede estimar. Chile: Encuesta 2011-2012: Tamaño de Empresa. Micro: No cubierta, Pequeña: hasta 2400 a 25 mil pesos chilenos, Mediana: 25 mil a 100 mil pesos chilenos, Grande: Mas de 100 mil pesos chilenos Colombia: Tamaño de Empresa. Micro: Hasta 9 empleados, Pequeña: 10 a 50 empleados, Mediana: 51 a 200 empleados, Grande: Más de 200 empleados. El cálculo de cantidad de firmas innovadoras es igual a la suma de innovadoras estrictas e innovadoras en sentido amplio. Dada esta clasificación ad-hoc, no es posible diferenciar entre innovadoras de producto, proceso, organización y comercialización. Consecuentemente, tampoco es posible estimar la cantidad de innovadoras TPP. Costa Rica: Tamaño de Empresa. Micro: No cubierta, Pequeña: 6 a 25 empleados, Mediana: 26 a 100 empleados, Grande: Más de 100 empleados. Sector manufactura: la información corresponde a los sectores manufactura, tecnologías de información y comunicación, energía y telecomunicaciones. México: Tamaño de Empresa. Micro: No cubierta, Pequeña: 20 a 50 empleados, Mediana: 51 a 250 empleados, Grande: Más de 250 empleados.
+
+#### Empresas Innovadoras TPP
+
+Definición: Firmas que han introducido un nuevo producto o proceso (para la empresa), o lo ha mejorado significativamente, durante el período en estudio (independientemente de que la empresa haya introducido innovaciones organizacionales y/o de comercialización).
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "6_1_5",
+      levels = c("Total Empresas", "Micro Empresas",
+                 "Pequeñas Empresas", "Medianas Empresas",
+                 "Grandes Empresas"),
+      labels = c("Total Empresas", "Micro Empresas",
+                 "Pequeñas Empresas", "Medianas Empresas",
+                 "Grandes Empresas"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "6_1_5",
+      levels = c("Total Empresas", "Micro Empresas",
+                 "Pequeñas Empresas", "Medianas Empresas",
+                 "Grandes Empresas"),
+      labels = c("Total \n Empresas", "Micro \n Empresas",
+                 "Pequeñas \n Empresas", "Medianas \n Empresas",
+                 "Grandes \n Empresas"),
+      label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+Argentina: Encuesta 2007: Tamaño de Empresa. Micro: No cubierta, Pequeña: hasta 70 millones de Pesos, Mediana: 71 a 280 millones de Pesos, Grande: 281 millones de Pesos o más. Encuesta 2008: Tamaño de Empresa. Micro: No cubierta, Pequeña: hasta 73 millones de Pesos, Mediana: 74 a 296 millones de Pesos, Grande: 297 millones de Pesos o más. Chile: Encuesta 2011-2012: Tamaño de Empresa. Micro: No cubierta, Pequeña: hasta 2400 a 25 mil pesos chilenos, Mediana: 25 mil a 100 mil pesos chilenos, Grande: Mas de 100 mil pesos chilenos Colombia: Tamaño de Empresa. Micro: Hasta 9 empleados, Pequeña: 10 a 50 empleados, Mediana: 51 a 200 empleados, Grande: Más de 200 empleados. Costa Rica: Tamaño de Empresa. Micro: No cubierta, Pequeña: 6 a 25 empleados, Mediana: 26 a 100 empleados, Grande: Más de 100 empleados. México: Tamaño de Empresa. Micro: No cubierta, Pequeña: 20 a 50 empleados, Mediana: 51 a 250 empleados, Grande: Más de 250 empleados.
+
+#### Empresas Innovadoras de proceso
+
+Definición: Firmas que han introducido un nuevo, o significativamente mejorado, proceso de producción o de distribución. Incluye cambios significativos en las técnicas, los equipos y/o software.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "6_1_6",
+      levels = c("Innovadoras de proceso - Total Industria Manufacturera",
+                 "Innovadoras de proceso - Industria Manufacturera Micro",
+                 "Innovadoras de proceso - Industria Manufacturera Pequeña", "Innovadoras de proceso - Industria Manufacturera Mediana",
+                 "Innovadoras de proceso - Industria Manufacturera Grande"),
+      labels = c("Innovadoras de proceso - Total Industria Manufacturera",
+                 "Innovadoras de proceso - Industria Manufacturera Micro",
+                 "Innovadoras de proceso - Industria Manufacturera Pequeña", "Innovadoras de proceso - Industria Manufacturera Mediana",
+                 "Innovadoras de proceso - Industria Manufacturera Grande"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "6_1_6",
+      levels = c("Innovadoras de proceso - Total Industria Manufacturera",
+                 "Innovadoras de proceso - Industria Manufacturera Micro",
+                 "Innovadoras de proceso - Industria Manufacturera Pequeña", "Innovadoras de proceso - Industria Manufacturera Mediana",
+                 "Innovadoras de proceso - Industria Manufacturera Grande"),
+      labels = c("Total Industria Manufacturera",
+                 "Industria Manufacturera Micro",
+                 "Industria Manufacturera Pequeña",
+                 "Industria Manufacturera Mediana",
+                 "Industria Manufacturera Grande"),
+      label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+Argentina: Encuesta 2007: Tamaño de Empresa. Micro: No cubierta, Pequeña: hasta 70 millones de Pesos, Mediana: 71 a 280 millones de Pesos, Grande: 281 millones de Pesos o más. Encuesta 2008: Tamaño de Empresa. Micro: No cubierta, Pequeña: hasta 73 millones de Pesos, Mediana: 74 a 296 millones de Pesos, Grande: 297 millones de Pesos o más. Brasil: Tamaño de Empresa. Micro: No cubierta, Pequeña: hasta 10 empleados, Mediana: Sin especificar, Grande: Sin Especificar. Para todos los ejercicios, la pregunta sobre innovaciones en organización admite respuesta múltiple (distintos tipos de innovaciones en organización) y los resultados no se presentan por cantidad de empresas sino por cantidad de respuestas. Por ello, el indicador no se puede estimar. Chile: Encuesta 2011-2012: Tamaño de Empresa. Micro: No cubierta, Pequeña: hasta 2400 a 25 mil pesos chilenos, Mediana: 25 mil a 100 mil pesos chilenos, Grande: Mas de 100 mil pesos chilenos Colombia: Tamaño de Empresa. Micro: Hasta 9 empleados, Pequeña: 10 a 50 empleados, Mediana: 51 a 200 empleados, Grande: Más de 200 empleados. Costa Rica: Tamaño de Empresa. Micro: No cubierta, Pequeña: 6 a 25 empleados, Mediana: 26 a 100 empleados, Grande: Más de 100 empleados. México: Tamaño de Empresa. Micro: No cubierta, Pequeña: 20 a 50 empleados, Mediana: 51 a 250 empleados, Grande: Más de 250 empleados.
+
+#### Empresas Innovadoras de producto
+
+Definición: Firmas que han introducido un bien o servicio nuevo, o significativamente mejorado, en cuanto a sus características o en cuanto al uso al que se destina. Esta definición incluye la mejora significativa de las especificaciones técnicas, de los componentes y materiales, del/ los software incorporado, u otras características funcionales.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "6_1_9",
+      levels = c("Total Empresas", "Micro Empresas",
+                 "Pequeñas Empresas", "Medianas Empresas",
+                 "Grandes Empresas"),
+      labels = c("Total Empresas", "Micro Empresas",
+                 "Pequeñas Empresas", "Medianas Empresas",
+                 "Grandes Empresas"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "6_1_9",
+      levels = c("Total Empresas", "Micro Empresas",
+                 "Pequeñas Empresas", "Medianas Empresas",
+                 "Grandes Empresas"),
+      labels = c("Total \n Empresas", "Micro \n Empresas",
+                 "Pequeñas \n Empresas", "Medianas \n Empresas",
+                 "Grandes \n Empresas"),
+      label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+Argentina: Encuesta 2007: Tamaño de Empresa. Micro: No cubierta, Pequeña: hasta 70 millones de Pesos, Mediana: 71 a 280 millones de Pesos, Grande: 281 millones de Pesos o más. Encuesta 2008: Tamaño de Empresa. Micro: No cubierta, Pequeña: hasta 73 millones de Pesos, Mediana: 74 a 296 millones de Pesos, Grande: 297 millones de Pesos o más. Brasil: Tamaño de Empresa. Micro: No cubierta, Pequeña: hasta 10 empleados, Mediana: Sin especificar, Grande: Sin Especificar. Para todos los ejercicios, la pregunta sobre innovaciones en organización admite respuesta múltiple (distintos tipos de innovaciones en organización) y los resultados no se presentan por cantidad de empresas sino por cantidad de respuestas. Por ello, el indicador no se puede estimar. Chile: Encuesta 2011-2012: Tamaño de Empresa. Micro: No cubierta, Pequeña: hasta 2400 a 25 mil pesos chilenos, Mediana: 25 mil a 100 mil pesos chilenos, Grande: Mas de 100 mil pesos chilenos Colombia: Tamaño de Empresa. Micro: Hasta 9 empleados, Pequeña: 10 a 50 empleados, Mediana: 51 a 200 empleados, Grande: Más de 200 empleados. Costa Rica: Tamaño de Empresa. Micro: No cubierta, Pequeña: 6 a 25 empleados, Mediana: 26 a 100 empleados, Grande: Más de 100 empleados. México: Tamaño de Empresa. Micro: No cubierta, Pequeña: 20 a 50 empleados, Mediana: 51 a 250 empleados, Grande: Más de 250 empleados.
+
+#### Empresas Innovadoras de producto, novedad para el mercado Internacional
+
+Definición: Firmas que han introducido un bien o servicio nuevo, o significativamente mejorado, en cuanto a sus características o en cuanto al uso al que se destina. Una innovación, es nueva para el mercado internacional cuando la empresa es la primera en introducir la innovación para todos los mercados e industrias domésticos e internacionales.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "6_1_10",
+      levels = "Total Empresas", labels = "Total Empresas")
+grafico(data = "indicadores RICYT.xlsx", sheet = "6_1_10",
+      levels = "Total Empresas", labels = "Total Empresas",
+      label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+Colombia: El cálculo de cantidad de firmas innovadoras de producto con alcance de novedad para el mercado internacional corresponde a “innovadoras estrictas" ("empresas que en el periodo de referencia de la encuesta obtuvieron al menos un bien o servicio nuevo o significativamente mejorado para el mercado internacional").
+
+#### Empresas Innovadoras de producto, novedad para la firma
+
+Definición: Firmas que han introducido un bien o servicio nuevo, o significativamente mejorado, en cuanto a sus características o en cuanto al uso al que se destina. Una innovación, es nueva para la firma cuando la empresa introduce una innovación que ya fue implementada por otra empresa doméstica o internacional.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "6_1_11",
+      levels = "Total Empresas", labels = "Total Empresas")
+grafico(data = "indicadores RICYT.xlsx", sheet = "6_1_11",
+      levels = "Total Empresas", labels = "Total Empresas",
+      label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+#### Empresas Innovadoras en Comercialización
+
+Definición: Firmas que han implementado un nuevo método de comercialización que involucra cambios significativos en el diseño del producto o del packaging y/o en las políticas de la empresa de entrega, precios o promoción del producto.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "6_1_12",
+      levels = c("Total Empresas", "Micro Empresas",
+                 "Pequeñas Empresas", "Medianas Empresas",
+                 "Grandes Empresas"),
+      labels = c("Total Empresas", "Micro Empresas",
+                 "Pequeñas Empresas", "Medianas Empresas",
+                 "Grandes Empresas"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "6_1_12",
+      levels = c("Total Empresas", "Micro Empresas",
+                 "Pequeñas Empresas", "Medianas Empresas",
+                 "Grandes Empresas"),
+      labels = c("Total \n Empresas", "Micro \n Empresas",
+                 "Pequeñas \n Empresas", "Medianas \n Empresas",
+                 "Grandes \n Empresas"),
+      label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+Argentina: Encuesta 2007: Tamaño de Empresa. Micro: No cubierta, Pequeña: hasta 70 millones de Pesos, Mediana: 71 a 280 millones de Pesos, Grande: 281 millones de Pesos o más. Encuesta 2008: Tamaño de Empresa. Micro: No cubierta, Pequeña: hasta 73 millones de Pesos, Mediana: 74 a 296 millones de Pesos, Grande: 297 millones de Pesos o más. Brasil: Tamaño de Empresa. Micro: No cubierta, Pequeña: hasta 10 empleados, Mediana: Sin especificar, Grande: Sin Especificar. Innovaciones en comercialización: corresponde innovaciones en nuevos conceptos/estrategias de marketing"." Chile: Innovadoras en comercialización: corresponde innovadoras en gestión. Encuesta 2011-2012: Tamaño de Empresa. Micro: No cubierta, Pequeña: hasta 2400 a 25 mil pesos chilenos, Mediana: 25 mil a 100 mil pesos chilenos, Grande: Mas de 100 mil pesos chilenos. Colombia: Tamaño de Empresa. Micro: Hasta 9 empleados, Pequeña: 10 a 50 empleados, Mediana: 51 a 200 empleados, Grande: Más de 200 empleados. Costa Rica: Tamaño de Empresa. Micro: No cubierta, Pequeña: 6 a 25 empleados, Mediana: 26 a 100 empleados, Grande: Más de 100 empleados. México: Tamaño de Empresa. Micro: No cubierta, Pequeña: 20 a 50 empleados, Mediana: 51 a 250 empleados, Grande: Más de 250 empleados.
+
+#### Empresas Innovadoras en Organización
+
+Definición: Firmas que han implementado un nuevo método organizacional en la práctica de negocios de la empresa, la organización del trabajo o las relaciones externas.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "6_1_13",
+      levels = c("Total Empresas", "Micro Empresas",
+                 "Pequeñas Empresas", "Medianas Empresas",
+                 "Grandes Empresas"),
+      labels = c("Total Empresas", "Micro Empresas",
+                 "Pequeñas Empresas", "Medianas Empresas",
+                 "Grandes Empresas"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "6_1_13",
+      levels = c("Total Empresas", "Micro Empresas",
+                 "Pequeñas Empresas", "Medianas Empresas",
+                 "Grandes Empresas"),
+      labels = c("Total \n Empresas", "Micro \n Empresas",
+                 "Pequeñas \n Empresas", "Medianas \n Empresas",
+                 "Grandes \n Empresas"),
+      label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+Argentina: Encuesta 2007: Tamaño de Empresa. Micro: No cubierta, Pequeña: hasta 70 millones de Pesos, Mediana: 71 a 280 millones de Pesos, Grande: 281 millones de Pesos o más. Encuesta 2008: Tamaño de Empresa. Micro: No cubierta, Pequeña: hasta 73 millones de Pesos, Mediana: 74 a 296 millones de Pesos, Grande: 297 millones de Pesos o más. Brasil: Tamaño de Empresa. Micro: No cubierta, Pequeña: hasta 10 empleados, Mediana: Sin especificar, Grande: Sin Especificar. Chile: Encuesta 2011-2012: Tamaño de Empresa. Micro: No cubierta, Pequeña: hasta 2400 a 25 mil pesos chilenos, Mediana: 25 mil a 100 mil pesos chilenos, Grande: Mas de 100 mil pesos chilenos. Colombia: Tamaño de Empresa. Micro: Hasta 9 empleados, Pequeña: 10 a 50 empleados, Mediana: 51 a 200 empleados, Grande: Más de 200 empleados. Costa Rica: Tamaño de Empresa. Micro: No cubierta, Pequeña: 6 a 25 empleados, Mediana: 26 a 100 empleados, Grande: Más de 100 empleados. México: Tamaño de Empresa. Micro: No cubierta, Pequeña: 20 a 50 empleados, Mediana: 51 a 250 empleados, Grande: Más de 250 empleados.
+
+
+#### Obstáculos al proceso de innovación
+
+Definición: Factores que obstaculizan el desarrollo de innovaciones en las empresas.
+
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "6_1_14",
+      levels = c("Escasez de personal calificado", "Riesgo de innovar",
+                 "Período de retorno", "Reducido tamaño de mercado",
+                 "Estructura de mercado",
+                 "Escaso dinamismo del cambio tecnológico en el sector",
+                 "Dificultades de acceso al financiamiento", "Escasas posibilidades de cooperación con otras empresas/instituciones",
+                 "Facilidad de imitación por terceros",
+                 "Insuficiente información sobre mercados",
+                 "Insuficiente información sobre tecnologías",
+                 "Falencia en las políticas públicas de CyT",
+                 "Escaso desarrollo de las instituciones de CyT",
+                 "Problemas en los marcos regulatorios",
+                 "Rigidez organizacional"),
+      labels = c("Escasez de personal calificado", "Riesgo de innovar",
+                 "Período de retorno", "Reducido tamaño de mercado",
+                 "Estructura de mercado",
+                 "Escaso dinamismo del cambio tecnológico en el sector",
+                 "Dificultades de acceso al financiamiento", "Escasas posibilidades de cooperación con otras empresas/instituciones",
+                 "Facilidad de imitación por terceros",
+                 "Insuficiente información sobre mercados",
+                 "Insuficiente información sobre tecnologías",
+                 "Falencia en las políticas públicas de CyT",
+                 "Escaso desarrollo de las instituciones de CyT",
+                 "Problemas en los marcos regulatorios",
+                 "Rigidez organizacional"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "6_1_14",
+      levels = c("Escasez de personal calificado", "Riesgo de innovar",
+                 "Período de retorno", "Reducido tamaño de mercado",
+                 "Estructura de mercado",
+                 "Escaso dinamismo del cambio tecnológico en el sector",
+                 "Dificultades de acceso al financiamiento", "Escasas posibilidades de cooperación con otras empresas/instituciones",
+                 "Facilidad de imitación por terceros",
+                 "Insuficiente información sobre mercados",
+                 "Insuficiente información sobre tecnologías",
+                 "Falencia en las políticas públicas de CyT",
+                 "Escaso desarrollo de las instituciones de CyT",
+                 "Problemas en los marcos regulatorios",
+                 "Rigidez organizacional"),
+      labels = c("Escasez \n de \n personal \n calificado", "Riesgo \n de \n innovar",
+                 "Período \n de \n retorno", "Reducido \n tamaño \n de \n mercado",
+                 "Estructura \n de \n mercado",
+                 "Escaso \n dinamismo \n del \n cambio \n tecnológico \n en \n el \n sector",
+                 "Dificultades \n de \n acceso \n al \n financiamiento", "Escasas \n posibilidades \n de \n cooperación \n con \n otras \n empresas/instituciones",
+                 "Facilidad \n de \n imitación \n por \n terceros",
+                 "Insuficiente \n información \n sobre \n mercados",
+                 "Insuficiente \n información \n sobre \n tecnologías",
+                 "Falencia \n en \n las \n políticas \n públicas \n de \n CyT",
+                 "Escaso \n desarrollo \n de \n las \n instituciones \n de \n CyT",
+                 "Problemas \n en \n los \n marcos \n regulatorios",
+                 "Rigidez \n organizacional"),
+      label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+Notas generales: Los subtotales difieren del total debido a cada empresa puede tener multiples obstáculos. Brasil: Riesgo de innovar corresponde a "riesgos económicos excesivos". Período de retorno corresponde a "elevados costos de la innovación". Problemas en los marcos regulatorios corresponde a "rigidez para adecuarse a padrones, las normas y regulaciones". Chile: Riesgo de innovar corresponde a "riesgo técnico". Escaso dinamismo del cambio tecnológico en el sector corresponde a "Ausencia de dinamismo en la tecnología". Escasas posibilidades de cooperación con otras empresas/instituciones corresponde a "Poca cooperación con empresas". Insuficiente información sobre tecnologías corresponde a "Falta de información sobre tecnologías o mercados" en la encuesta 2003-2004. Colombia: Riesgo de innovar corresponde a "Incertidumbre frente al éxito en la ejecución técnica del proyecto" Período de retorno corresponde a "Baja rentabilidad de la innovación". Costa Rica: Período de retorno corresponde a "Período de retornos inconvenientes". Riesgo de innovar corresponde: “Temor al fracaso de la innovación”. Falencias en las políticas públicas de CyT corresponde: “Políticas públicas inadecuadas para la promoción de C&T”. México: Riesgo de innovar corresponde a "riesgo económico excesivo". Período de retorno corresponde a "Costos de la innovación muy elevados". Falencia en las políticas públicas de CyT corresponde a "Falta de apoyos públicos". Problemas en los marcos regulatorios corresponde a "Obstáculos derivados de la legalización vigente (normas, reglamento, estándares impuestos)”. Rigidez organizacional corresponde: “Rigidez organizacional de la empresa”. Perú: Riesgo de innovar corresponde a "riesgos económicos excesivos". Período de retorno corresponde a "Costos de la innovación muy elevados".
+
+#### Fuentes de Información para las Actividades de Innovación
+
+Definición: Áreas de la empresa que contribuyen como fuentes de información para las actividades de innovación, independientemente de los resultados alcanzados.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "6_1_15",
+      levels = c("Departamento de I+D", "Otras fuentes internas",
+                 "Fuentes internas", "Empresas relacionadas",
+                 "Casa Matriz", "Universidades",
+                 "Centros de investigación", "Consultores",
+                 "Clientes", "Proveedores", "Competidores",
+                 "Instituciones de capacitación",
+                 "Instituciones tecnológicas", "Conferencias, libros, catálogos, ferias y exposiciones", "Internet"), labels = c("Departamento de I+D", "Otras fuentes internas",
+                 "Fuentes internas", "Empresas relacionadas",
+                 "Casa Matriz", "Universidades",
+                 "Centros de investigación", "Consultores",
+                 "Clientes", "Proveedores", "Competidores",
+                 "Instituciones de capacitación",
+                 "Instituciones tecnológicas", "Conferencias, libros, catálogos, ferias y exposiciones", "Internet"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "6_1_15",
+      levels = c("Departamento de I+D", "Otras fuentes internas",
+                 "Fuentes internas", "Empresas relacionadas",
+                 "Casa Matriz", "Universidades",
+                 "Centros de investigación", "Consultores",
+                 "Clientes", "Proveedores", "Competidores",
+                 "Instituciones de capacitación",
+                 "Instituciones tecnológicas", "Conferencias, libros, catálogos, ferias y exposiciones", "Internet"), labels = c("Departamento \n de \n I+D", "Otras \n fuentes \n internas",
+                 "Fuentes \n internas", "Empresas \n relacionadas",
+                 "Casa \n Matriz", "Universidades",
+                 "Centros \n de \n investigación", "Consultores",
+                 "Clientes", "Proveedores", "Competidores",
+                 "Instituciones \n de \n capacitación",
+                 "Instituciones \n tecnológicas", "Conferencias, \n libros, \n catálogos, \n ferias \n y \n exposiciones", "Internet"),
+      label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+Argentina: Conferencias, libros, catálogos, ferias y exposiciones corresponde: revistas y catálogos. Brasil: Empresas relacionadas: puesto que no se ofrece la opción “casa matriz” se asume que está incluida en esta categoría. Universidades 2000-2005: corresponde “universidades y centros de investigación”. 2006 en adelante corresponde “universidades y otros centros de enseñanza superior”. Centros de investigación: 2000-2005 incluido en “universidades. 2006 en adelante corresponde: “centros de investigación o centros tecnológicos”. Instituciones de capacitación corresponde: “Centros de capacitación profesional y asistencia técnica.” Conferencias, libros, catálogos, ferias y exposiciones corresponde: Conferencias, encuentros y publicaciones especializadas. Internet corresponde: redes de información informatizadas. Colombia: Para todas las fuentes externas, los datos corresponden a organizaciones “nacionales”, excepto casa matriz y empresas relacionadas donde los datos corresponden a la suma de “nacionales” y “extranjeras”. Aunque esta adición puede implicar duplicación de respuestas, la exclusión de “extranjeras” atentaría significativamente contra la comparabilidad de los resultados. Universidades 2006 corresponde: universidades y centros de investigación. Instituciones tecnológicas corresponde: “Centro de Desarrollo Tecnológico (CDT)”. Conferencias, libros, catálogos, ferias y exposiciones corresponde: ferias y exposiciones. Costa Rica: Universidades corresponde: Universidad, centro de investigación o desarrollo tecnológico (nacionales, internacionales, públicos, privados). Conferencias, libros, catálogos, ferias y exposiciones corresponde: Ferias, conferencias, exposiciones. Centros tecnológicos corresponde: “Centros tecnológicos o laboratorios/empresas de I+D.” Empresas relacionadas corresponde: “otras empresas del grupo”. Competidores corresponde: “otras empresas”. Organismos públicos de CTI corresponde: “Agencias o programas gubernamentales de promoción de C&T”. México: Universidades corresponde: “universidades y otros institutos de educación superior”. Institutos de investigación corresponde: “Institutos de investigación públicos o privados no lucrativos”. Conferencias, libros, catálogos, ferias y exposiciones corresponde: “Conferencias, seminarios y revistas especializadas”. Internet corresponde: redes de información informatizadas. Perú: Fuentes internas corresponde: fuentes internas, empresas relacionadas y casa matriz. Universidades corresponde: “universidades y centros de enseñanza superior”. Centros de investigación corresponde: “Institutos de investigación gubernamentales o público”. Consultores corresponde: “Consultores, laboratorios comerciales o institutos privados de I+D” Conferencias, libros, catálogos, ferias y exposiciones corresponde: “Conferencias, ferias comerciales, exposiciones”.
+
+#### Cooperación entre la Empresa y su Entorno
+
+Definición: Firmas que interactuan con su entorno (incluyendo un acuerdo formal), con el objetivo de realizar actividades de innovación.
+
+```{r}
+
+tabla(data = "indicadores RICYT.xlsx", sheet = "6_1_16",
+      levels = c("Universidades", "Institutos de formación tecnológica",
+                 "Centros tecnológicos", "Consultores",
+                 "Empresas relacionadas", "Casa matriz", "Clientes",
+                 "Proveedores", "Competidores",
+                 "Organismos públicos de CTI"),
+      labels = c("Universidades", "Institutos de formación tecnológica",
+                 "Centros tecnológicos", "Consultores",
+                 "Empresas relacionadas", "Casa matriz", "Clientes",
+                 "Proveedores", "Competidores",
+                 "Organismos públicos de CTI"))
+grafico(data = "indicadores RICYT.xlsx", sheet = "6_1_16",
+      levels = c("Universidades", "Institutos de formación tecnológica",
+                 "Centros tecnológicos", "Consultores",
+                 "Empresas relacionadas", "Casa matriz", "Clientes",
+                 "Proveedores", "Competidores",
+                 "Organismos públicos de CTI"),
+      labels = c("Universidades", "Institutos \n de \n formación \n tecnológica",
+                 "Centros \n tecnológicos", "Consultores",
+                 "Empresas \n relacionadas", "Casa \n matriz", "Clientes",
+                 "Proveedores", "Competidores",
+                 "Organismos \n públicos \n de \n CTI"),
+      label_y = label_percent(), row = vars(Tipo))
+
+```
+
+
+Argentina: Competidores corresponde: otras empresas no relacionadas". Organismos públicos de CTI corresponde: "Agencias gubernamentales de CyT"." Brasil: Empresas relacionadas: puesto que no se ofrece la opción “casa matriz” se asume que está incluida en esta categoría. Universidades 2000-2005: corresponde “universidades y centros de investigación”. 2006 en adelante corresponde “universidades y otros centros de enseñanza superior”. Centros de investigación: 2000-2005 incluido en “universidades. 2006 en adelante corresponde: “centros de investigación o centros tecnológicos”. Instituciones de capacitación corresponde: “Centros de capacitación profesional y asistencia técnica.” Conferencias, libros, catálogos, ferias y exposiciones corresponde: Conferencias, encuentros y publicaciones especializadas. Internet corresponde: redes de información informatizadas. Colombia: 2007-2009 Centros tecnológicos corresponde: “Centros tecnológicos o laboratorios/empresas de I+D.” Empresas relacionadas corresponde: “otras empresas del grupo”. Competidores corresponde: “otras empresas”. Organismos públicos de CTI corresponde: “Agencias o programas gubernamentales de promoción de C&T”. México: Universidades corresponde: “universidades y otros institutos de educación superior”. Institutos de investigación corresponde: “Institutos de investigación públicos o privados no lucrativos”. Conferencias, libros, catálogos, ferias y exposiciones corresponde: “Conferencias, seminarios y revistas especializadas”. Internet corresponde: redes de información informatizadas. Perú: Consultores corresponde: “Consultores y otros expertos”. Empresas relacionadas corresponde: “Casa matriz y empresas del grupo”. Competidores corresponde: “Competidores y otras empresas.” Organismos públicos de CTI corresponde: “Programas gubernamentales de promoción de CTI”.
